@@ -6,69 +6,33 @@
   <title>Fitness Tracker</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#4CAF50" />
+  <meta name="theme-color" content="#000000" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <header><h1>Fitness Tracker</h1></header>
+  <!-- Top Banner -->
+  <header id="top-banner">
+    <div class="phase-label">Phase <span id="phase-num">1</span></div>
+    <div id="phase-progress-container"><div id="phase-progress-bar"></div></div>
+  </header>
+
+  <!-- Main content -->
   <main>
-    <section id="top-row" class="row">
-      <div class="row">
-        <button id="prev-month" class="small">‹</button>
-        <span id="month-title"></span>
-        <button id="next-month" class="small">›</button>
-      </div>
-      <div class="row">
-        <button id="view-calendar" class="small">Calendar</button>
-        <button id="view-stats" class="small">Stats</button>
-        <button id="update-orms" class="small">Update 1RMs</button>
-        <button id="log-extra-btn" class="primary">+ Log Extra Workout</button>
-      </div>
-    </section>
-
-    <!-- Calendar (default view) -->
-    <section id="calendar-section">
-      <div id="calendar-grid"></div>
-    </section>
-
-    <!-- Workout view -->
-    <section id="workout-section" class="hidden card">
-      <button id="back-btn" class="small">← Back</button>
-      <h2 id="workout-date-title"></h2>
-      <div id="current-orm-box" class="card-sub"></div>
-      <div class="superset card-sub"><h3>Main Superset</h3><div id="main-superset"></div></div>
-      <div class="superset card-sub"><h3>Accessory Superset</h3><div id="accessory-superset"></div></div>
-      <div class="row" style="justify-content:flex-end;margin-top:8px;">
-        <button id="complete-workout" class="primary">Mark Workout Complete</button>
-      </div>
-    </section>
-
-    <!-- Phase progress -->
-    <section id="progress-section" class="card">
-      <h2>Phase Progress</h2>
-      <div id="phase-progress-container"><div id="phase-progress-bar"></div></div>
-      <p id="phase-progress-text"></p>
-    </section>
-
-    <!-- 1RM chart -->
-    <section id="charts-section" class="card">
-      <h2>Exercise Progress</h2>
-      <canvas id="exercise-chart" height="200"></canvas>
-    </section>
-
-    <!-- Stats -->
-    <section id="stats-section" class="card hidden">
-      <h2>Your Stats</h2>
-      <div id="stats-content"></div>
-      <h3>Recent Extra Workouts</h3>
-      <div id="extra-mini"></div>
-      <h3>Extra Workouts History</h3>
-      <div id="extra-history"></div>
-    </section>
+    <section id="calendar-section"></section>
+    <section id="workout-section" class="hidden"></section>
+    <section id="stats-section" class="hidden"></section>
   </main>
+
+  <!-- Bottom Navigation -->
+  <nav id="bottom-nav">
+    <button id="nav-stats" class="nav-btn" title="Stats">📊</button>
+    <button id="nav-calendar" class="nav-btn center" title="Calendar">📅</button>
+    <button id="nav-extra" class="nav-btn" title="Log Extra">➕</button>
+    <button id="nav-orms" class="nav-btn" title="Update 1RMs">💪</button>
+  </nav>
 
   <script src="app.js" defer></script>
   <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('service-worker.js');}</script>

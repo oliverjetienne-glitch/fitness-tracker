@@ -1,30 +1,37 @@
 
-:root{--accent:#4CAF50;--card:#ffffff;--purple:rgba(156,39,176,0.82);}
+:root{
+  --blue:#2196F3;
+  --green:#4CAF50;
+  --yellow:#FFEB3B;
+  --purple:#9C27B0;
+  --gray:#f5f5f5;
+  --text:#111;
+}
 *{box-sizing:border-box}
-body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;}
-header{background:var(--accent);color:#fff;padding:12px;text-align:center}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:0;background:#fff;color:var(--text)}
+header#top-banner{background:#000;color:#fff;padding:10px;text-align:center;position:sticky;top:0;z-index:100}
+header#top-banner .phase-label{font-weight:700;font-size:16px;margin-bottom:4px}
+#phase-progress-container{width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden}
+#phase-progress-bar{height:100%;width:0;background:var(--green);transition:width .3s ease}
 main{padding:12px;max-width:900px;margin:0 auto;}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.small{padding:6px 8px;border:none;border-radius:6px;background:#eaeaea;cursor:pointer}
-.primary{background:var(--accent);color:#fff;border:none;padding:8px 10px;border-radius:8px;cursor:pointer}
-.secondary{background:#888;color:#fff;border:none;padding:8px 10px;border-radius:8px;cursor:pointer}
-.card{background:var(--card);padding:12px;border-radius:10px;margin:10px 0;box-shadow:0 1px 4px rgba(0,0,0,.1)}
-#calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.day{background:#fff;border:1px solid #ddd;padding:8px;min-height:96px;border-radius:8px;position:relative;cursor:pointer;overflow:hidden}
-.date-num{font-weight:800;letter-spacing:.3px}
-.day.day1{background:#e3f2fd} /* blue */
-.day.day2{background:#e8f5e9} /* green */
-.day.day3{background:#fffde7} /* yellow */
+
+#calendar-section{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.day{background:var(--gray);border-radius:10px;padding:6px;min-height:80px;position:relative;cursor:pointer;text-align:center}
+.day .date-num{font-weight:700;font-size:14px;margin-bottom:4px}
+.day.day1{border:2px solid var(--blue)}
+.day.day2{border:2px solid var(--green)}
+.day.day3{border:2px solid var(--yellow)}
+.checkmark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:36px;color:#fff;background:rgba(76,175,80,0.82);font-weight:900;pointer-events:none}
+.extra-mark,.extra-badge-corner{position:absolute;display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;background:var(--purple);font-weight:900;cursor:pointer}
+.extra-mark{inset:0}
+.extra-badge-corner{right:4px;bottom:4px;width:24px;height:24px;border-radius:50%}
+
+#workout-section{padding:12px}
+#stats-section{padding:12px}
+
+nav#bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#000;color:#fff;display:flex;justify-content:space-around;align-items:center;padding:6px 0}
+nav#bottom-nav .nav-btn{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;flex:1;text-align:center}
+nav#bottom-nav .nav-btn.center{font-size:26px;font-weight:bold}
+
+.card{background:#fff;border-radius:12px;padding:12px;box-shadow:0 2px 5px rgba(0,0,0,.1);margin-bottom:10px}
 .hidden{display:none}
-
-#phase-progress-container{width:100%;height:16px;background:#eee;border-radius:10px;overflow:hidden}
-#phase-progress-bar{height:100%;width:0;background:var(--accent);transition:width .3s ease}
-#exercise-chart{width:100%;max-height:300px}
-
-.modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);padding:12px;z-index:1000}
-.modal-inner{background:#fff;border-radius:10px;padding:12px;max-width:480px;width:100%}
-
-/* overlays */
-.checkmark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:48px;color:#fff;background:rgba(76,175,80,0.82);font-weight:900;pointer-events:none}
-.extra-mark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:44px;color:#fff;background:var(--purple);font-weight:900;cursor:pointer}
-.extra-badge-corner{position:absolute;right:6px;bottom:6px;width:30px;height:30px;border-radius:50%;background:var(--purple);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer}
