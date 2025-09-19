@@ -1,20 +1,18 @@
 
-// ===== Fitness Tracker v3.11c (full + dynamic modals; preloaded 1RMs; no startup popups) =====
+// ===== Fitness Tracker v3.12 =====
+// Dynamic modals; preloaded 1RMs; extras badge; auto-hide workout view; checkmarks; auto-jump to current week
 (function(){
-  // Helpers
   const pad = n => String(n).padStart(2,'0');
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const dow = d => d.toLocaleDateString(undefined,{weekday:'short'}).toUpperCase();
   const round5 = n => Math.round(n/5)*5;
 
-  // Clear any legacy flags that might open modals
   try{ ['firstRun','showUpdateModal','needs1RM','openExtraOnStart'].forEach(k=>localStorage.removeItem(k)); }catch(e){}
 
-  // State
   let phase = parseInt(localStorage.getItem('phase')||'1');
   let oneRepMax = JSON.parse(localStorage.getItem('oneRepMax')||'{}');
   if(Object.keys(oneRepMax).length===0){
-    oneRepMax = {"Back Squat":110,"Deadlift":180,"Front Squat":95}; // preload defaults
+    oneRepMax = {"Back Squat":110,"Deadlift":180,"Front Squat":95}; // preload
     localStorage.setItem('oneRepMax', JSON.stringify(oneRepMax));
   }
   let ormHistory = JSON.parse(localStorage.getItem('ormHistory')||'{}');
@@ -34,9 +32,8 @@
     localStorage.setItem('amapLogs', JSON.stringify(amapLogs));
   }
 
-  // Program
   const programDays = {
-    1: {
+    1: { // Day 1
       main: [
         { name: "Back Squat", key: "Back Squat", scheme: "percent" },
         { name: "RDL", key: "RDL", scheme: "fixed", weeks: {
@@ -52,7 +49,7 @@
         { name: "Single-Arm Overhead Press", key: "SA Overhead Press", sets: 3, reps: 10 }
       ]
     },
-    2: {
+    2: { // Day 2
       main: [
         { name: "Deadlift", key: "Deadlift", scheme: "percent" },
         { name: "Goblet Squat", key: "Goblet Squat", scheme: "fixed", weeks: {
@@ -69,7 +66,7 @@
         { name: "Side Lunges (Weighted)", key: "Side Lunges", sets: 3, reps: 10 }
       ]
     },
-    3: {
+    3: { // Day 3
       main: [
         { name: "Front Squat", key: "Front Squat", scheme: "percent" },
         { name: "BFESS", key: "BFESS", scheme: "fixed", weeks: {
@@ -97,7 +94,7 @@
   };
   const liftSchemeMap = { "Back Squat":"531", "Deadlift":"531", "Front Squat":"531" };
 
-  // Schedule (Day1 Tue/Mon alt starting Tue 2025-09-23; Day2 Wed; Day3 Sun)
+  // Schedule generator
   function* scheduleGenerator(startDate, weeks=104){
     for(let k=0;k<weeks;k++){
       const base = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + k*7); // Tue anchor
@@ -117,7 +114,7 @@
     save();
   }
 
-  // Renderers
+  // Rendering helpers
   function updatePhaseProgress(){
     const pct = data.schedule.length ? Math.round((data.completed.length/data.schedule.length)*100) : 0;
     document.getElementById('phase-progress-bar').style.width = pct+'%';
@@ -271,29 +268,39 @@
     document.getElementById('month-title').textContent = first.toLocaleString(undefined,{month:'long',year:'numeric'});
     const startPad = first.getDay();
     for(let i=0;i<startPad;i++){ grid.appendChild(document.createElement('div')); }
+    let todayCell = null;
     for(let d=1; d<=last.getDate(); d++){
       const date = new Date(window._viewYear, window._viewMonth, d);
       const key = iso(date);
       const cell = document.createElement('div'); cell.className='day';
+      cell.setAttribute('data-date', key);
       cell.innerHTML = `<div class="date-num"><strong>${d} ${dow(date)}</strong></div>`;
       const sched = data.schedule.find(s => s.date===key);
       if(sched){
         cell.classList.add(`day${sched.dayIndex}`);
         const tag = document.createElement('small'); tag.textContent = sched.label; cell.appendChild(tag);
+        // Extras badge
         if(extraWorkouts[key] && extraWorkouts[key].length){
           const b = document.createElement('button'); b.className='extra-badge'; b.textContent='+';
           b.title='View extra workouts'; b.onclick = e=>{ e.stopPropagation(); showExtra(key); };
           cell.appendChild(b);
         }
+        // Checkmark for completed
+        if(data.completed.includes(key)){
+          const chk = document.createElement('div'); chk.className='checkmark'; chk.textContent='✓';
+          cell.appendChild(chk);
+        }
         cell.onclick = ()=> openWorkout(key);
       }
-      if(data.completed.includes(key)) cell.classList.add('completed');
+      if(iso(new Date())===key) todayCell = cell;
       grid.appendChild(cell);
     }
     updatePhaseProgress();
+    // Auto-jump to current week/day: scroll today's cell into view if exists
+    if(todayCell) { setTimeout(()=>{ todayCell.scrollIntoView({block:'center', behavior:'smooth'}); }, 0); }
   }
 
-  // Dynamic modals
+  // Dynamic modal helper
   function modal(html){
     const m = document.createElement('div'); m.className='modal'; m.innerHTML = `<div class="modal-inner card">${html}</div>`;
     m.addEventListener('click', e=>{ if(e.target===m) m.remove(); });
@@ -310,7 +317,7 @@
 
   // Init & UI
   document.addEventListener('DOMContentLoaded', () => {
-    // default view
+    // Default view
     document.getElementById('calendar-section').classList.remove('hidden');
     document.getElementById('stats-section').classList.add('hidden');
     document.getElementById('workout-section').classList.add('hidden');
@@ -324,11 +331,20 @@
     renderChart();
     renderStats();
 
-    // navigation
+    // navigation + auto-hide workout view on tab switch
     document.getElementById('prev-month').onclick = ()=>{ window._viewMonth--; if(window._viewMonth<0){window._viewMonth=11;window._viewYear--;} renderMonth(); };
     document.getElementById('next-month').onclick = ()=>{ window._viewMonth++; if(window._viewMonth>11){window._viewMonth=0;window._viewYear++;} renderMonth(); };
-    document.getElementById('view-calendar').onclick = ()=>{ document.getElementById('calendar-section').classList.remove('hidden'); document.getElementById('stats-section').classList.add('hidden'); };
-    document.getElementById('view-stats').onclick = ()=>{ document.getElementById('stats-section').classList.remove('hidden'); document.getElementById('calendar-section').classList.add('hidden'); renderStats(); };
+    document.getElementById('view-calendar').onclick = ()=>{
+      document.getElementById('workout-section').classList.add('hidden');
+      document.getElementById('calendar-section').classList.remove('hidden');
+      document.getElementById('stats-section').classList.add('hidden');
+    };
+    document.getElementById('view-stats').onclick = ()=>{
+      document.getElementById('workout-section').classList.add('hidden');
+      document.getElementById('stats-section').classList.remove('hidden');
+      document.getElementById('calendar-section').classList.add('hidden');
+      renderStats();
+    };
     document.getElementById('back-btn').onclick = ()=>{
       document.getElementById('workout-section').classList.add('hidden');
       document.getElementById('calendar-section').classList.remove('hidden');

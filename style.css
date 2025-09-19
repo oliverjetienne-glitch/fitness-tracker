@@ -16,6 +16,7 @@ main{padding:12px;max-width:900px;margin:0 auto;}
 .day.day2{background:#e8f5e9} /* green */
 .day.day3{background:#fffde7} /* yellow */
 .extra-badge{position:absolute;right:6px;top:6px;background:#ffcc00;color:#000;border:none;border-radius:50%;width:24px;height:24px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.checkmark{position:absolute;left:6px;top:6px;background:#4CAF50;color:#fff;border-radius:50%;width:22px;height:22px;font-weight:900;display:flex;align-items:center;justify-content:center;line-height:1}
 .hidden{display:none}
 .input-inline{display:flex;gap:6px;align-items:center;margin-top:6px}
 input[type=number],input[type=date],select,textarea{padding:6px;border:1px solid #ddd;border-radius:6px;width:100%}
@@ -26,4 +27,3 @@ ul{margin:6px 0 0 18px;padding:0}
 #exercise-chart{width:100%;max-height:300px}
 .modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);padding:12px;z-index:1000}
 .modal-inner{background:#fff;border-radius:10px;padding:12px;max-width:480px;width:100%}
-.completed{outline:3px solid #4CAF50}
