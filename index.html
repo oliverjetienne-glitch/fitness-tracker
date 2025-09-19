@@ -15,23 +15,70 @@
 <body>
   <!-- Top Banner -->
   <header id="top-banner">
-    <div class="phase-label">Phase <span id="phase-num">1</span></div>
+    <div class="phase-row">
+      <div class="phase-label">Phase <span id="phase-num">1</span></div>
+      <div id="month-header">
+        <button id="prev-month" aria-label="Prev">‹</button>
+        <span id="month-title"></span>
+        <button id="next-month" aria-label="Next">›</button>
+      </div>
+    </div>
     <div id="phase-progress-container"><div id="phase-progress-bar"></div></div>
   </header>
 
   <!-- Main content -->
   <main>
-    <section id="calendar-section"></section>
-    <section id="workout-section" class="hidden"></section>
-    <section id="stats-section" class="hidden"></section>
+    <section id="calendar-view">
+      <div id="calendar-grid"></div>
+    </section>
+
+    <section id="workout-view" class="hidden">
+      <div id="workout-header">
+        <button id="back-btn" class="ghost">←</button>
+        <h2 id="workout-date-title"></h2>
+      </div>
+      <div id="workout-meta" class="card">
+        <div id="current-orm-box"></div>
+      </div>
+      <div class="card themed" id="main-superset-card">
+        <h3>Main Superset</h3>
+        <div id="main-superset"></div>
+      </div>
+      <div class="card themed" id="accessory-superset-card">
+        <h3>Accessory Superset</h3>
+        <div id="accessory-superset"></div>
+      </div>
+      <div class="row right">
+        <button id="complete-workout" class="primary">Mark Workout Complete</button>
+      </div>
+    </section>
+
+    <section id="stats-view" class="hidden">
+      <div class="card">
+        <h2>Your Stats</h2>
+        <div id="stats-content"></div>
+      </div>
+      <div class="card">
+        <h3>1RM Progress</h3>
+        <canvas id="exercise-chart" height="200"></canvas>
+      </div>
+      <div class="card">
+        <h3>Recent Extra Workouts</h3>
+        <div id="extra-mini"></div>
+      </div>
+      <div class="card">
+        <h3>Extra Workouts History</h3>
+        <div id="extra-history"></div>
+      </div>
+    </section>
   </main>
 
   <!-- Bottom Navigation -->
   <nav id="bottom-nav">
-    <button id="nav-stats" class="nav-btn" title="Stats">📊</button>
-    <button id="nav-calendar" class="nav-btn center" title="Calendar">📅</button>
-    <button id="nav-extra" class="nav-btn" title="Log Extra">➕</button>
-    <button id="nav-orms" class="nav-btn" title="Update 1RMs">💪</button>
+    <button id="nav-stats" class="nav-btn" title="Stats" aria-label="Stats">📊</button>
+    <button id="nav-calendar" class="nav-btn center" title="Calendar" aria-label="Calendar">📅</button>
+    <button id="nav-extra" class="fab" title="Log Extra" aria-label="Log Extra">➕</button>
+    <button id="nav-orms" class="nav-btn" title="Update 1RMs" aria-label="Update 1RMs">💪</button>
   </nav>
 
   <script src="app.js" defer></script>

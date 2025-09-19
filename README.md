@@ -1,8 +1,9 @@
-# Fitness Tracker PWA (v3.15)
+# Fitness Tracker PWA (v14.0)
 
-- Purple star overlay (★) for days with extra workouts. Click to open details.
-- If a day is both completed (✓) and has extras (★), the ✓ remains full overlay, and a purple corner star badge appears.
-- All other functionality preserved from v3.14: schedule, workouts, stats, 1RM chart, PWA, etc.
-- Cache bumped to ft-cache-v315.
+Modern app redesign + full functionality:
+- Top banner: Phase label + progress bar
+- Bottom nav: Stats, Calendar (center), Log Extra (FAB), 1RMs
+- Minimal black/white Calendar & Stats; themed workout pages (D1 blue, D2 green, D3 yellow); Extras purple
+- Full features: schedule, percentage sets, fixed prescriptions (RDL/Goblet/BFESS), accessories logging, AMAP, extras with star overlay + details, completed checkmarks, stats, 1RM chart, PWA
 
-Deploy: GitHub + Cloudflare Pages (Framework None, Build command blank, Publish dir '/').
+Deploy via GitHub + Cloudflare Pages (Framework None, Build blank, Publish '/').
