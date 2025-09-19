@@ -28,13 +28,9 @@
         <button id="log-extra-btn" class="primary">+ Log Extra Workout</button>
       </div>
     </section>
-
-    <!-- Calendar (default view) -->
     <section id="calendar-section">
       <div id="calendar-grid"></div>
     </section>
-
-    <!-- Workout view -->
     <section id="workout-section" class="hidden card">
       <button id="back-btn" class="small">← Back</button>
       <h2 id="workout-date-title"></h2>
@@ -45,21 +41,15 @@
         <button id="complete-workout" class="primary">Mark Workout Complete</button>
       </div>
     </section>
-
-    <!-- Phase progress -->
     <section id="progress-section" class="card">
       <h2>Phase Progress</h2>
       <div id="phase-progress-container"><div id="phase-progress-bar"></div></div>
       <p id="phase-progress-text"></p>
     </section>
-
-    <!-- 1RM chart -->
     <section id="charts-section" class="card">
       <h2>Exercise Progress</h2>
       <canvas id="exercise-chart" height="200"></canvas>
     </section>
-
-    <!-- Stats -->
     <section id="stats-section" class="card hidden">
       <h2>Your Stats</h2>
       <div id="stats-content"></div>
@@ -69,7 +59,6 @@
       <div id="extra-history"></div>
     </section>
   </main>
-
   <script src="app.js" defer></script>
   <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('service-worker.js');}</script>
 </body>
