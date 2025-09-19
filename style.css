@@ -1,5 +1,5 @@
 
-:root{--accent:#4CAF50;--card:#ffffff;}
+:root{--accent:#4CAF50;--card:#ffffff;--purple:rgba(156,39,176,0.82);}
 *{box-sizing:border-box}
 body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:0;background:#fafafa;color:#111;}
 header{background:var(--accent);color:#fff;padding:12px;text-align:center}
@@ -15,15 +15,16 @@ main{padding:12px;max-width:900px;margin:0 auto;}
 .day.day1{background:#e3f2fd} /* blue */
 .day.day2{background:#e8f5e9} /* green */
 .day.day3{background:#fffde7} /* yellow */
-.extra-badge{position:absolute;right:6px;bottom:6px;background:#ffcc00;color:#000;border:none;border-radius:50%;width:24px;height:24px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer}
-.checkmark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:48px;color:#fff;background:rgba(76,175,80,0.82);font-weight:900;pointer-events:none}
 .hidden{display:none}
-.input-inline{display:flex;gap:6px;align-items:center;margin-top:6px}
-input[type=number],input[type=date],select,textarea{padding:6px;border:1px solid #ddd;border-radius:6px;width:100%}
-label{display:block;margin:6px 0;font-size:14px}
-ul{margin:6px 0 0 18px;padding:0}
+
 #phase-progress-container{width:100%;height:16px;background:#eee;border-radius:10px;overflow:hidden}
 #phase-progress-bar{height:100%;width:0;background:var(--accent);transition:width .3s ease}
 #exercise-chart{width:100%;max-height:300px}
+
 .modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);padding:12px;z-index:1000}
 .modal-inner{background:#fff;border-radius:10px;padding:12px;max-width:480px;width:100%}
+
+/* overlays */
+.checkmark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:48px;color:#fff;background:rgba(76,175,80,0.82);font-weight:900;pointer-events:none}
+.extra-mark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:44px;color:#fff;background:var(--purple);font-weight:900;cursor:pointer}
+.extra-badge-corner{position:absolute;right:6px;bottom:6px;width:30px;height:30px;border-radius:50%;background:var(--purple);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer}

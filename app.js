@@ -1,20 +1,18 @@
 
-// ===== Fitness Tracker v3.14 =====
-// Full app restored from v3.12 + fixes: extras badge, auto-hide workout view on nav, big checkmark, auto-scroll to current week
+// ===== Fitness Tracker v3.15 =====
+// Purple star overlay for extra workouts (+ click to view); full app retained from v3.14
 (function(){
   const pad = n => String(n).padStart(2,'0');
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const dow = d => d.toLocaleDateString(undefined,{weekday:'short'}).toUpperCase();
   const round5 = n => Math.round(n/5)*5;
 
-  // Remove any legacy flags that cause modals to open
   try{ ['firstRun','showUpdateModal','needs1RM','openExtraOnStart'].forEach(k=>localStorage.removeItem(k)); }catch(e){}
 
-  // State
   let phase = parseInt(localStorage.getItem('phase')||'1');
   let oneRepMax = JSON.parse(localStorage.getItem('oneRepMax')||'{}');
   if(Object.keys(oneRepMax).length===0){
-    oneRepMax = {"Back Squat":110,"Deadlift":180,"Front Squat":95}; // preload
+    oneRepMax = {"Back Squat":110,"Deadlift":180,"Front Squat":95};
     localStorage.setItem('oneRepMax', JSON.stringify(oneRepMax));
   }
   let ormHistory = JSON.parse(localStorage.getItem('ormHistory')||'{}');
@@ -34,10 +32,8 @@
     localStorage.setItem('amapLogs', JSON.stringify(amapLogs));
   }
 
-  // Program definitions
   const programDays = {
-    1: {
-      main: [
+    1: { main: [
         { name: "Back Squat", key: "Back Squat", scheme: "percent" },
         { name: "RDL", key: "RDL", scheme: "fixed", weeks: {
           1: {weight:"60", reps:5, sets:4},
@@ -52,8 +48,7 @@
         { name: "Single-Arm Overhead Press", key: "SA Overhead Press", sets: 3, reps: 10 }
       ]
     },
-    2: {
-      main: [
+    2: { main: [
         { name: "Deadlift", key: "Deadlift", scheme: "percent" },
         { name: "Goblet Squat", key: "Goblet Squat", scheme: "fixed", weeks: {
           1: {weight:"40", reps:6, sets:4},
@@ -69,8 +64,7 @@
         { name: "Side Lunges (Weighted)", key: "Side Lunges", sets: 3, reps: 10 }
       ]
     },
-    3: {
-      main: [
+    3: { main: [
         { name: "Front Squat", key: "Front Squat", scheme: "percent" },
         { name: "BFESS", key: "BFESS", scheme: "fixed", weeks: {
           1: {weight:"30", reps:5, sets:4},
@@ -97,7 +91,7 @@
   };
   const liftSchemeMap = { "Back Squat":"531", "Deadlift":"531", "Front Squat":"531" };
 
-  // Schedule (Day1 Tue/Mon alternates starting Tue 2025-09-23; Day2 Wed; Day3 Sun)
+  // Schedule creation
   function* scheduleGenerator(startDate, weeks=104){
     for(let k=0;k<weeks;k++){
       const base = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + k*7); // Tue anchor
@@ -281,28 +275,36 @@
       if(sched){
         cell.classList.add(`day${sched.dayIndex}`);
         const tag = document.createElement('small'); tag.textContent = sched.label; cell.appendChild(tag);
-        // Extras badge (reliable)
-        if(Array.isArray(extraWorkouts[key]) && extraWorkouts[key].length > 0){
-          const b = document.createElement('button'); b.className='extra-badge'; b.textContent='+';
-          b.title='View extra workouts'; b.addEventListener('click', (e)=>{ e.stopPropagation(); showExtra(key); });
-          cell.appendChild(b);
+
+        const hasExtra = Array.isArray(extraWorkouts[key]) && extraWorkouts[key].length>0;
+        const isDone = data.completed.includes(key);
+
+        // Overlays
+        if(isDone){ const chk = document.createElement('div'); chk.className='checkmark'; chk.textContent='✓'; cell.appendChild(chk); }
+        if(hasExtra && !isDone){
+          const star = document.createElement('div'); star.className='extra-mark'; star.textContent='★';
+          star.title='View extra workouts';
+          star.addEventListener('click', (e)=>{ e.stopPropagation(); showExtra(key); });
+          cell.appendChild(star);
         }
-        // Big green checkmark overlay
-        if(data.completed.includes(key)){
-          const chk = document.createElement('div'); chk.className='checkmark'; chk.textContent='✓';
-          cell.appendChild(chk);
+        if(hasExtra && isDone){
+          // If both exist, show a smaller purple corner badge for extras so both are visible
+          const badge = document.createElement('div'); badge.className='extra-badge-corner'; badge.textContent='★';
+          badge.title='View extra workouts';
+          badge.addEventListener('click', (e)=>{ e.stopPropagation(); showExtra(key); });
+          cell.appendChild(badge);
         }
+
         cell.addEventListener('click', ()=> openWorkout(key));
       }
       if(iso(new Date())===key) todayCell = cell;
       grid.appendChild(cell);
     }
     updatePhaseProgress();
-    // Auto-scroll today into view
     if(todayCell) setTimeout(()=>{ todayCell.scrollIntoView({block:'center'}); }, 0);
   }
 
-  // Modals
+  // Modal helpers
   function modal(html){
     const m = document.createElement('div'); m.className='modal'; m.innerHTML = `<div class="modal-inner card">${html}</div>`;
     m.addEventListener('click', e=>{ if(e.target===m) m.remove(); });
@@ -333,7 +335,7 @@
     renderChart();
     renderStats();
 
-    // navigation + auto-hide workout view on tab switch
+    // navigation (force-hide workout view on tab switch)
     document.getElementById('prev-month').onclick = ()=>{ window._viewMonth--; if(window._viewMonth<0){window._viewMonth=11;window._viewYear--;} renderMonth(); };
     document.getElementById('next-month').onclick = ()=>{ window._viewMonth++; if(window._viewMonth>11){window._viewMonth=0;window._viewYear++;} renderMonth(); };
     document.getElementById('view-calendar').onclick = ()=>{
@@ -352,7 +354,7 @@
       document.getElementById('calendar-section').classList.remove('hidden');
     };
 
-    // Update 1RMs (dynamic modal)
+    // Update 1RMs
     document.getElementById('update-orms').onclick = ()=>{
       const m = modal(`<h3>Update 1RMs</h3>
         <form id="update-orms-form">
@@ -375,7 +377,7 @@
       };
     };
 
-    // Log Extra Workout (dynamic modal)
+    // Log Extra Workout
     document.getElementById('log-extra-btn').onclick = ()=>{
       const today = new Date().toISOString().slice(0,10);
       const m = modal(`<h3>Log Extra Workout</h3>

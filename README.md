@@ -1,12 +1,8 @@
-# Fitness Tracker PWA (v3.14)
+# Fitness Tracker PWA (v3.15)
 
-- Restores full functionality (calendar, schedule, workouts, stats, 1RM chart, extras).
-- Fixes:
-  - Extra workout badge reliably shows on calendar days with logged extras (tap to view).
-  - Workout view auto-hides when switching to Calendar or Stats.
-  - Big green checkmark overlay on completed days.
-  - Calendar auto-scrolls today into view on load.
-- Preloaded 1RMs: Back Squat 110, Deadlift 180, Front Squat 95.
-- PWA: manifest + service worker (cache key ft-cache-v314).
+- Purple star overlay (★) for days with extra workouts. Click to open details.
+- If a day is both completed (✓) and has extras (★), the ✓ remains full overlay, and a purple corner star badge appears.
+- All other functionality preserved from v3.14: schedule, workouts, stats, 1RM chart, PWA, etc.
+- Cache bumped to ft-cache-v315.
 
 Deploy: GitHub + Cloudflare Pages (Framework None, Build command blank, Publish dir '/').
