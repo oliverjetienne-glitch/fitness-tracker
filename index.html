@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Fitness Tracker v14.9</title>
+  <title>Fitness Tracker v15.0</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#ffffff" />
@@ -26,11 +26,11 @@
 
   <!-- Main content -->
   <main>
-    <section id="calendar-view">
+    <section id="calendar-view" role="region" aria-label="Calendar">
       <div id="calendar-grid"></div>
     </section>
 
-    <section id="workout-view" class="hidden">
+    <section id="workout-view" class="hidden" role="region" aria-label="Workout">
       <div id="workout-header" class="row between">
         <button id="back-btn" class="ghost" aria-label="Back">←</button>
         <h2 id="workout-date-title"></h2>
@@ -57,7 +57,7 @@
       </div>
     </section>
 
-    <section id="stats-view" class="hidden">
+    <section id="stats-view" class="hidden" role="region" aria-label="Stats">
       <div class="card glance">
         <h2>This Week at a Glance</h2>
         <div id="glance-content"></div>
@@ -85,7 +85,7 @@
       </div>
     </section>
 
-    <section id="goals-view" class="hidden">
+    <section id="goals-view" class="hidden" role="region" aria-label="Goals">
       <div class="row between">
         <h2 style="margin:6px 0">Goals</h2>
         <button id="add-goal" class="primary" style="background:#6a1b9a">➕ Add Goal</button>
