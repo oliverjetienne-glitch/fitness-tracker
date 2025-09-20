@@ -74,5 +74,5 @@ nav#bottom-nav .nav-btn span{font-size:12px;color:#333}
 .theme-d2 .exercise-card{border-left:6px solid var(--green)}
 .theme-d3 .exercise-card{border-left:6px solid var(--yellow)}
 
-/* Visibility utility to avoid stacking */
+/* Visibility */
 .hidden{display:none !important}
