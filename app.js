@@ -524,3 +524,62 @@
   });
 
 })(); 
+
+
+
+// --- v15.2 Fixes ---
+
+// Show Extra modal
+function showExtra(date){
+  const list = (extraWorkouts[date]||[]);
+  if(!list.length){ toast("No extra workouts logged for "+date); return; }
+  const items = list.map(e=>`<li>${e.type} – ${e.duration||''} min ${e.intensity?('Int '+e.intensity):''} ${e.notes?('– '+e.notes):''}</li>`).join("");
+  modal(`<h3>Extra Workouts for ${date}</h3><ul>${items}</ul>`);
+}
+
+// Render Goals
+function renderGoals(){
+  const list = document.getElementById('goals-list');
+  const completed = document.getElementById('goals-completed-list');
+  if(!list||!completed) return;
+  list.innerHTML = goals.filter(g=>!g.done).map((g,i)=>`<div><input type="checkbox" data-i="${i}"> ${g.text}</div>`).join('') || '<em>No active goals.</em>';
+  completed.innerHTML = goals.filter(g=>g.done).map(g=>`<div>✅ ${g.text}</div>`).join('') || '<em>No completed goals.</em>';
+  list.querySelectorAll('input[type=checkbox]').forEach(inp=>{
+    inp.onchange=()=>{ goals[inp.dataset.i].done=true; save(); renderGoals(); };
+  });
+}
+
+// Add Goal button
+document.addEventListener('DOMContentLoaded',()=>{
+  const btn = document.getElementById('add-goal');
+  if(btn){
+    btn.onclick=()=>{
+      const m = modal(`<h3>Add Goal</h3>
+        <form id="goal-form">
+          <label>Description: <input type="text" id="goal-text" required></label>
+          <div class="row right"><button type="submit" class="primary">Save</button></div>
+        </form>`);
+      m.querySelector('#goal-form').onsubmit=(e)=>{
+        e.preventDefault();
+        const txt = m.querySelector('#goal-text').value.trim();
+        if(txt){ goals.push({text:txt,done:false}); save(); m.remove(); renderGoals(); }
+      };
+    };
+  }
+});
+
+// Swipe month navigation
+let touchStartX=0;
+document.addEventListener('touchstart',e=>{ touchStartX=e.changedTouches[0].screenX; });
+document.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].screenX-touchStartX;
+  if(Math.abs(dx)>80){
+    if(dx<0){ // swipe left → next month
+      window._viewMonth++; if(window._viewMonth>11){window._viewMonth=0;window._viewYear++;}
+      renderMonth();
+    } else { // swipe right → prev month
+      window._viewMonth--; if(window._viewMonth<0){window._viewMonth=11;window._viewYear--;}
+      renderMonth();
+    }
+  }
+});
