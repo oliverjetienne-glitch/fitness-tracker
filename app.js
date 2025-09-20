@@ -1,4 +1,21 @@
 
+// --- v15.9 Motivations ---
+const MOTIVATION_MESSAGES = [
+  "🔥 Crushing it!",
+  "💪 That’s how progress is made.",
+  "⚡ Energy well spent!",
+  "✨ Keep building momentum.",
+  "👏 Another win in the books!",
+  "🚀 Stronger every session.",
+  "🌟 Great consistency!",
+  "🏋️ Gains unlocked.",
+  "TEST BUILD v15.9 – Motivation Active"
+];
+function randomMotivation(){
+  return MOTIVATION_MESSAGES[Math.floor(Math.random()*MOTIVATION_MESSAGES.length)];
+}
+
+
 // --- v15.8 Motivations ---
 const MOTIVATION_MESSAGES = [
   "🔥 Crushing it!",
@@ -16,7 +33,7 @@ function randomMotivation(){
 
 // Fitness Tracker v15.7 — Day3 yellow, anchored phase weeks, mini celebrations
 (function(){
-  const VERSION = '15.8';
+  const VERSION = '15.9';
   const pad = n => String(n).padStart(2,'0');
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const round5 = n => Math.round(n/5)*5;
@@ -377,7 +394,7 @@ function randomMotivation(){
           const act = btn.getAttribute('data-act');
           if(act==='inc'){ g.progress = (g.progress||0)+1; save(); renderGoals(); }
           if(act==='edit'){ showGoalForm(g); }
-          if(act==='complete'){ g.completed=true; save(); toast("Goal completed! ✅"); renderGoals(); }
+          if(act==='complete'){ g.completed=true; save(); toast(randomMotivation()); renderGoals(); }
           if(act==='delete'){ goals = goals.filter(x=>x.id!==g.id); save(); renderGoals(); }
         };
       });
@@ -637,7 +654,7 @@ function randomMotivation(){
           const v = parseInt(fd.get(k));
           if(!isNaN(v) && v>0){ oneRepMax[k]=v; (ormHistory[k]||(ormHistory[k]=[])).push(v); }
         });
-        save(); m.remove(); toast("1RMs updated ✅"); renderORMChart();
+        save(); m.remove(); toast(randomMotivation()); renderORMChart();
       };
     };
 
