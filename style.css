@@ -76,3 +76,12 @@ nav#bottom-nav .nav-btn span{font-size:12px;color:#333}
 
 /* Visibility */
 .hidden{display:none !important}
+
+/* Goals cards */
+.goal-card{border:1px solid #eee;border-radius:14px;padding:12px;margin:8px 0}
+.goal-title{font-weight:800}
+.goal-meta{color:#666;font-size:13px;margin:4px 0}
+.badge{background:#eee;border-radius:999px;padding:2px 8px;margin-left:6px}
+.goal-progress{height:10px;background:#eee;border-radius:999px;overflow:hidden;margin:6px 0}
+.goal-progress>div{height:100%;background:#4caf50;width:0}
+.goal-actions{display:flex;gap:8px;flex-wrap:wrap}
