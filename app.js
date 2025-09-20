@@ -1,6 +1,22 @@
+
+// --- v15.8 Motivations ---
+const MOTIVATION_MESSAGES = [
+  "🔥 Crushing it!",
+  "💪 That’s how progress is made.",
+  "⚡ Energy well spent!",
+  "✨ Keep building momentum.",
+  "👏 Another win in the books!",
+  "🚀 Stronger every session.",
+  "🌟 Great consistency!",
+  "🏋️ Gains unlocked."
+];
+function randomMotivation(){
+  return MOTIVATION_MESSAGES[Math.floor(Math.random()*MOTIVATION_MESSAGES.length)];
+}
+
 // Fitness Tracker v15.7 — Day3 yellow, anchored phase weeks, mini celebrations
 (function(){
-  const VERSION = '15.7';
+  const VERSION = '15.8';
   const pad = n => String(n).padStart(2,'0');
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const round5 = n => Math.round(n/5)*5;
@@ -675,3 +691,33 @@
 
   });
 })();
+
+// --- v15.8 Phase Week Completion ---
+function phaseWeekRanges(){
+  // anchor start 2025-09-23 (Tue)
+  const anchor = new Date("2025-09-23");
+  const ranges = [];
+  for(let i=0;i<4;i++){
+    const start = new Date(anchor);
+    start.setDate(anchor.getDate() + i*7);
+    const end = new Date(start);
+    end.setDate(start.getDate()+6);
+    ranges.push({week:i+1, start, end});
+  }
+  return ranges;
+}
+function isPhaseWeekComplete(weekNum){
+  const ranges = phaseWeekRanges();
+  const w = ranges.find(r=>r.week===weekNum);
+  if(!w) return false;
+  const days = data.schedule.filter(s=>{
+    const d = new Date(s.date);
+    return d>=w.start && d<=w.end;
+  });
+  const d1 = days.find(s=>s.label==='Day 1');
+  const d2 = days.find(s=>s.label==='Day 2');
+  const d3 = days.find(s=>s.label==='Day 3');
+  return (!!d1 && data.completed.includes(d1.date)) &&
+         (!!d2 && data.completed.includes(d2.date)) &&
+         (!!d3 && data.completed.includes(d3.date));
+}
