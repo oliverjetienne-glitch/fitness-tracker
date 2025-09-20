@@ -1,11 +1,10 @@
-
-// Fitness Tracker v15.5 — Stats fixes & extra-workout mood
+// Fitness Tracker v15.6 — Fixes: weekly completion, 1RM chart, full Goals, workout page colors, header week/day/date
 (function(){
-  const VERSION = '15.5';
+  const VERSION = '15.6';
   const pad = n => String(n).padStart(2,'0');
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  const dow = d => d.toLocaleDateString(undefined,{weekday:'short'}).toUpperCase();
   const round5 = n => Math.round(n/5)*5;
+  const fmtDow = d => d.toLocaleDateString(undefined,{weekday:'short'}).toUpperCase();
 
   if(localStorage.getItem('appVersion') !== VERSION){
     localStorage.setItem('appVersion', VERSION);
@@ -133,6 +132,18 @@
     const {start, end} = phaseRange();
     return d>=start && d<=end;
   }
+  function phaseWeekIndex(dateStr){
+    const {start} = phaseRange();
+    const d = new Date(dateStr);
+    const diff = Math.floor((d - start)/(1000*60*60*24));
+    return Math.max(0, Math.floor(diff/7)); // 0..3 within phase
+  }
+  function phaseWeekKey(dateStr){
+    const {start} = phaseRange();
+    const idx = phaseWeekIndex(dateStr);
+    const wkStart = new Date(start); wkStart.setDate(start.getDate() + idx*7);
+    return iso(wkStart);
+  }
 
   // ------- UI helpers -------
   const $ = sel => document.querySelector(sel);
@@ -153,13 +164,7 @@
   }
 
   // ------- Workout -------
-  function getWeekNumber(dateStr){
-    const {start} = phaseRange();
-    const cur = new Date(dateStr);
-    const diff = Math.floor((cur - start)/(1000*60*60*24));
-    const idx = Math.floor(diff/7);
-    return ((idx % 4) + 1);
-  }
+  function getWeekNumber(dateStr){ return phaseWeekIndex(dateStr)+1; }
   function renderCurrentORM(dayIndex){
     const box = $('#day-hero');
     let ref = '';
@@ -171,24 +176,28 @@
   function openWorkout(dateStr){
     toWorkout();
     const sched = data.schedule.find(s=>s.date===dateStr);
-    $('#workout-date-title').textContent = `${sched.label} — ${dateStr}`;
-    renderCurrentORM(sched.dayIndex);
+    // Restore themed colors per day on workout pages
+    document.body.classList.remove('theme-d1','theme-d2','theme-d3','theme-extra');
+    if(sched.dayIndex===1) document.body.classList.add('theme-d1');
+    if(sched.dayIndex===2) document.body.classList.add('theme-d2');
+    if(sched.dayIndex===3) document.body.classList.add('theme-d3');
 
     const weekNum = getWeekNumber(dateStr);
+    const header = `Week ${weekNum} • ${sched.label} • ${dateStr}`;
+    $('#workout-date-title').textContent = header;
+    renderCurrentORM(sched.dayIndex);
+
     const mainWrap = $('#main-superset'); mainWrap.innerHTML='';
     const accWrap = $('#accessory-superset'); accWrap.innerHTML='';
-
-    const percentSchemesRef = percentSchemes;
-    const liftSchemeMapRef = liftSchemeMap;
 
     programDays[sched.dayIndex].main.forEach(main=>{
       const card = document.createElement('div'); card.className='exercise-card';
       const title = `<div class="exercise-title">${main.name}</div>`;
       let body = '';
       if(main.scheme==='percent'){
-        const sets = percentSchemesRef[liftSchemeMapRef[main.key]][weekNum];
+        const scheme = percentSchemes[liftSchemeMap[main.key]][weekNum];
         body += `<div class="exercise-rows">`;
-        sets.forEach(s=>{
+        scheme.forEach(s=>{
           const w = round5((oneRepMax[main.key]||100)*s.p);
           if(String(s.r).toUpperCase()==='AMAP'){
             const v = (amapLogs[dateStr] && amapLogs[dateStr][main.key]) ? amapLogs[dateStr][main.key] : '';
@@ -234,6 +243,7 @@
     });
 
     const btn = document.getElementById('complete-workout');
+    btn.classList.add('themed-btn'); // color from --accent
     btn.onclick = ()=>{
       if(!data.completed.includes(dateStr)) data.completed.push(dateStr);
       save();
@@ -254,8 +264,8 @@
     };
   }
 
-  // Toast & Modal
-  function toast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 1600); }
+  // ------- Toast & Modal -------
+  function toast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 1800); }
   function modal(html){
     const m = document.createElement('div'); m.className='modal'; m.innerHTML = `<div class="modal-inner card">${html}</div>`;
     m.addEventListener('click', e=>{ if(e.target===m) m.remove(); });
@@ -263,7 +273,7 @@
     document.body.appendChild(m); return m;
   }
 
-  // v15.5 helpers
+  // ------- v15.6 helpers (Stats, Weeks, Phase Complete) -------
   function ensureMoodArray(date){
     const v = moodLogs[date];
     if(v==null){ moodLogs[date] = []; }
@@ -271,58 +281,99 @@
     else if(Array.isArray(v)){ /* ok */ }
     else { moodLogs[date] = []; }
   }
-  function recordMood(date, score){ ensureMoodArray(date); moodLogs[date].push(score); save(); }
-  function updateStats(){ try{ renderGlance(); renderStreaks(); renderExtraLists(); renderMoodChart(); }catch(e){} }
-  function isWeekComplete(weekKeyStr){
-    const thisWeekDates = data.schedule.filter(s=> weekKey(s.date)===weekKeyStr);
-    const d1 = thisWeekDates.find(s=>s.label==='Day 1');
-    const d2 = thisWeekDates.find(s=>s.label==='Day 2');
-    const d3 = thisWeekDates.find(s=>s.label==='Day 3');
+  function updateStats(){ try{ renderGlance(); renderStreaks(); renderExtraLists(); renderMoodChart(); renderORMChart(); }catch(e){} }
+  function isPhaseWeekComplete(idx){
+    // find all scheduled days in this phase-week index
+    const {start} = phaseRange();
+    const wkStart = new Date(start); wkStart.setDate(start.getDate() + idx*7);
+    const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate()+6);
+    const sched = data.schedule.filter(s=>{
+      const d = new Date(s.date);
+      return d>=wkStart && d<=wkEnd && inCurrentPhase(s.date);
+    });
+    const d1 = sched.find(s=>s.label==='Day 1');
+    const d2 = sched.find(s=>s.label==='Day 2');
+    const d3 = sched.find(s=>s.label==='Day 3');
     return (!!d1 && data.completed.includes(d1.date)) &&
            (!!d2 && data.completed.includes(d2.date)) &&
            (!!d3 && data.completed.includes(d3.date));
   }
   function checkPhaseComplete(){
-    const {start,end} = phaseRange();
-    const phaseWeeks = new Set();
-    data.schedule.forEach(s=>{ const d=new Date(s.date); if(d>=start && d<=end){ phaseWeeks.add(weekKey(s.date)); } });
-    const allDone = Array.from(phaseWeeks).every(k=> isWeekComplete(k));
+    const idxs = [0,1,2,3];
+    const allDone = idxs.every(isPhaseWeekComplete);
     if(allDone){
       const m = modal(`<h2>🎉 Phase ${phase} Complete!</h2>
-        <p>Ready to set new 1RMs for Phase ${phase+1}?</p>
+        <p>Killer work. Ready to set new 1RMs for Phase ${phase+1}?</p>
         <div class="row right">
           <button id="later" class="primary" style="background:#888">Later</button>
           <button id="next" class="primary">Start Phase ${phase+1}</button>
         </div>`);
       m.querySelector('#later').onclick = ()=> m.remove();
-      m.querySelector('#next').onclick = ()=>{ phase+=1; save(); m.remove(); document.getElementById('nav-orms').click(); toCalendar(); renderMonth(); updateStats(); };
+      m.querySelector('#next').onclick = ()=>{
+        phase += 1; save(); m.remove();
+        document.getElementById('nav-orms').click();
+        toCalendar(); renderMonth(); updateStats();
+      };
     }
   }
 
-  // Goals minimal (Add/Edit/Delete button wiring)
+  // ------- Goals (full) -------
   function uid(){ return Math.random().toString(36).slice(2); }
+  function computeGoalProgress(g){
+    if(g.completed) return 1;
+    if(g.type==='manual'){ return Math.min(1, (g.progress||0) / Math.max(1,g.target||1)); }
+    if(g.type==='1rm'){
+      const ex = g.link?.exercise; if(!ex) return 0;
+      const current = oneRepMax[ex]||0;
+      return Math.min(1, current / Math.max(1,g.target||1));
+    }
+    if(g.type==='extras_week'){
+      // Count extras in current phase week containing "now"
+      const now = new Date();
+      const wkIdx = phaseWeekIndex(iso(now));
+      const {start} = phaseRange();
+      const wkStart = new Date(start); wkStart.setDate(start.getDate() + wkIdx*7);
+      const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate()+6);
+      const count = Object.keys(extraWorkouts).filter(date=>{
+        const d=new Date(date);
+        return d>=wkStart && d<=wkEnd && inCurrentPhase(date) && (extraWorkouts[date]||[]).length>0;
+      }).length;
+      return Math.min(1, count / Math.max(1,g.target||1));
+    }
+    return 0;
+  }
   function renderGoals(){
     const list = document.getElementById('goals-list');
     const comp = document.getElementById('goals-completed-list');
     if(!list||!comp) return;
     list.innerHTML=''; comp.innerHTML='';
+
     goals.forEach(g=>{
-      const card = document.createElement('div'); card.className='card';
-      card.innerHTML = `<div class="row between"><div><strong>${g.title||'(untitled)'}</strong></div>
-      <div class="row">
-        <button class="primary" data-act="edit" style="background:#555">Edit</button>
-        <button class="primary" data-act="complete" style="background:#2e7d32">Complete</button>
-        <button class="primary" data-act="delete" style="background:#b71c1c">Delete</button>
-      </div></div>`;
+      const value = computeGoalProgress(g);
+      const deadline = g.deadline ? new Date(g.deadline) : null;
+      const daysLeft = deadline ? Math.ceil((deadline - new Date())/(1000*60*60*24)) : null;
+      const status = g.completed ? 'Completed' : (daysLeft!=null && daysLeft<0 ? 'Missed' : (value>=1 ? 'Ready to complete' : 'On Track'));
+      const card = document.createElement('div'); card.className='goal-card';
+      card.innerHTML = `
+        <div class="goal-title">${g.title}</div>
+        <div class="goal-meta">${g.category}${g.deadline?` • ${daysLeft>=0?daysLeft+" days left":"past due"}`:""} <span class="badge">${status}</span></div>
+        <div class="goal-progress"><div style="width:${Math.min(100,Math.round(value*100))}%"></div></div>
+        <div class="goal-actions">
+          ${g.type==='manual' ? '<button class="primary" data-act="inc">+ Progress</button>' : ''}
+          <button class="primary" data-act="edit" style="background:#555">Edit</button>
+          <button class="primary" data-act="complete" style="background:#2e7d32">Complete</button>
+          <button class="primary" data-act="delete" style="background:#b71c1c">Delete</button>
+        </div>`;
       card.querySelectorAll('button').forEach(btn=>{
-        btn.onclick=()=>{
-          const act=btn.getAttribute('data-act');
-          if(act==='edit') showGoalForm(g);
-          if(act==='complete'){ g.completed=true; save(); renderGoals(); }
-          if(act==='delete'){ goals = goals.filter(x=>x!==g); save(); renderGoals(); }
+        btn.onclick = ()=>{
+          const act = btn.getAttribute('data-act');
+          if(act==='inc'){ g.progress = (g.progress||0)+1; save(); renderGoals(); }
+          if(act==='edit'){ showGoalForm(g); }
+          if(act==='complete'){ g.completed=true; save(); toast("Goal completed! ✅"); renderGoals(); }
+          if(act==='delete'){ goals = goals.filter(x=>x.id!==g.id); save(); renderGoals(); }
         };
       });
-      (g.completed?comp:list).appendChild(card);
+      if(g.completed) comp.appendChild(card); else list.appendChild(card);
     });
     if(!list.children.length) list.innerHTML = '<em>No active goals yet.</em>';
     if(!comp.children.length) comp.innerHTML = '<em>No completed goals yet.</em>';
@@ -332,65 +383,91 @@
     const m = modal(`<h3>${existing?'Edit Goal':'Add Goal'}</h3>
       <form id="goal-form">
         <label>Title <input name="title" value="${g.title||''}" required></label>
-        <div class="row right"><button type="button" id="cancel" class="primary" style="background:#888">Cancel</button>
-        <button type="submit" class="primary">Save</button></div>
+        <label>Category
+          <select name="category">
+            ${["Strength","Conditioning","Mobility","Lifestyle","Other"].map(c=>`<option ${g.category===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </label>
+        <label>Type
+          <select name="type" id="goal-type">
+            <option value="manual" ${g.type==='manual'?'selected':''}>Manual (count to target)</option>
+            <option value="1rm" ${g.type==='1rm'?'selected':''}>1RM target (auto)</option>
+            <option value="extras_week" ${g.type==='extras_week'?'selected':''}>Extras per week (auto)</option>
+          </select>
+        </label>
+        <div id="goal-type-extra"></div>
+        <label>Target (number) <input name="target" type="tel" inputmode="numeric" pattern="[0-9]*" value="${g.target||1}"></label>
+        <label>Deadline (optional) <input name="deadline" type="date" value="${g.deadline||''}"></label>
+        <div class="row right">
+          <button type="button" id="cancel" class="primary" style="background:#888">Cancel</button>
+          <button type="submit" class="primary">Save</button>
+        </div>
       </form>`);
-    m.querySelector('#cancel').onclick=()=>m.remove();
-    m.querySelector('#goal-form').onsubmit=(e)=>{ e.preventDefault(); const fd=new FormData(e.target); g.title=fd.get('title'); if(!existing) goals.push(g); save(); m.remove(); renderGoals(); };
+    const extra = m.querySelector('#goal-type-extra');
+    function renderExtraFields(){
+      const val = m.querySelector('#goal-type').value;
+      if(val==='1rm'){
+        const ex = g.link?.exercise || 'Deadlift';
+        extra.innerHTML = `<label>Exercise
+          <select name="exercise">
+            ${["Back Squat","Deadlift","Front Squat"].map(k=>`<option ${ex===k?'selected':''}>${k}</option>`).join('')}
+          </select>
+        </label>`;
+      } else if(val==='extras_week'){
+        extra.innerHTML = `<p class="goal-meta">Counts extra workouts logged in the current phase week.</p>`;
+      } else { extra.innerHTML=''; }
+    }
+    m.querySelector('#goal-type').onchange = renderExtraFields; renderExtraFields();
+    m.querySelector('#cancel').onclick = ()=> m.remove();
+    m.querySelector('#goal-form').onsubmit = (e)=>{
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      g.title = fd.get('title'); g.category=fd.get('category'); g.type=fd.get('type');
+      g.target = parseInt(fd.get('target'))||1; g.deadline = fd.get('deadline')||''; g.createdPhase = phase;
+      if(g.type==='1rm'){ g.link={exercise: fd.get('exercise')}; }
+      if(!existing) goals.push(g);
+      save(); m.remove(); renderGoals();
+    };
   }
 
-  // Stats
-  function startOfWeek(d){ const dt=new Date(d); const day=(dt.getDay()+6)%7; dt.setDate(dt.getDate()-day); dt.setHours(0,0,0,0); return dt; }
-  function endOfWeek(d){ const s=startOfWeek(d); const e=new Date(s); e.setDate(e.getDate()+6); return e; }
-  function weekKey(d){ const s=startOfWeek(new Date(d)); return iso(s); }
+  // ------- Stats -------
   function renderGlance(){
     const el = document.getElementById('glance-content'); if(!el) return;
-    const now = new Date();
-    const s = startOfWeek(now), e = endOfWeek(now);
+    // Use current phase week bucket
+    const today = iso(new Date());
+    const idx = phaseWeekIndex(today);
+    const {start} = phaseRange();
+    const wkStart = new Date(start); wkStart.setDate(start.getDate()+idx*7);
+    const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate()+6);
     const schedThisWeek = data.schedule.filter(x=>{
-      const d=new Date(x.date); return d>=s && d<=e && inCurrentPhase(x.date);
+      const d=new Date(x.date); return d>=wkStart && d<=wkEnd && inCurrentPhase(x.date);
     });
     const completedThisWeek = schedThisWeek.filter(x=> data.completed.includes(x.date)).length;
     const extrasCount = Object.keys(extraWorkouts).filter(date=>{
-      const d=new Date(date); return d>=s && d<=e && inCurrentPhase(date) && (extraWorkouts[date]||[]).length>0;
+      const d=new Date(date); return d>=wkStart && d<=wkEnd && inCurrentPhase(date) && (extraWorkouts[date]||[]).length>0;
     }).length;
     el.innerHTML = `<ul>
       <li><strong>Workouts:</strong> ${completedThisWeek}/3</li>
       <li><strong>Extras:</strong> ${extrasCount}</li>
     </ul>`;
   }
-  function collectWeeks(){
-    const weeks = {};
-    data.schedule.forEach(s=>{
-      if(!inCurrentPhase(s.date)) return;
-      const wk = weekKey(s.date);
-      if(!weeks[wk]) weeks[wk] = {d1:false,d2:false,d3:false,extras:false};
-      if(s.label==="Day 1" && data.completed.includes(s.date)) weeks[wk].d1 = true;
-      if(s.label==="Day 2" && data.completed.includes(s.date)) weeks[wk].d2 = true;
-      if(s.label==="Day 3" && data.completed.includes(s.date)) weeks[wk].d3 = true;
-    });
-    Object.keys(extraWorkouts).forEach(date=>{
-      if(!inCurrentPhase(date)) return;
-      const wk = weekKey(date);
-      if(!weeks[wk]) weeks[wk] = {d1:false,d2:false,d3:false,extras:false};
-      if((extraWorkouts[date]||[]).length>0) weeks[wk].extras = true;
-    });
-    return weeks;
-  }
   function renderStreaks(){
     const el = document.getElementById('streaks-content'); if(!el) return;
-    const weeks = collectWeeks();
-    const wkKeys = Object.keys(weeks).sort();
-    let best=0,current=0, perfectPlus=0;
-    wkKeys.forEach(k=>{
-      const w=weeks[k];
-      const full = (w.d1 && w.d2 && w.d3);
-      if(full){ current+=1; best=Math.max(best,current); if(w.extras) perfectPlus++; } else { current=0; }
-      w.full = full;
+    const weeks = [0,1,2,3].map(idx=>{
+      const full = isPhaseWeekComplete(idx);
+      // extras present in that week?
+      const {start} = phaseRange();
+      const ws = new Date(start); ws.setDate(start.getDate()+idx*7);
+      const we = new Date(ws); we.setDate(ws.getDate()+6);
+      const extras = Object.keys(extraWorkouts).some(date=>{
+        const d=new Date(date); return d>=ws && d<=we && inCurrentPhase(date) && (extraWorkouts[date]||[]).length>0;
+      });
+      return {idx, full, extras, key: iso(ws)};
     });
-    const recent = wkKeys.slice(-8).map(k=>{
-      const w=weeks[k];
-      const label = new Date(k).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+    let best=0,current=0, perfectPlus=0;
+    weeks.forEach(w=>{ if(w.full){ current++; best=Math.max(best,current); if(w.extras) perfectPlus++; } else { current=0; } });
+    const recent = weeks.map(w=>{
+      const label = new Date(w.key).toLocaleDateString(undefined,{month:'short',day:'numeric'});
       const status = w.full ? (w.extras? "Perfect+ ✅" : "Complete ✅") : "Incomplete";
       return `<li>Week of ${label}: ${status}</li>`;
     }).join("");
@@ -411,6 +488,16 @@
     const hist = document.getElementById('extra-history');
     hist.innerHTML = all.length ? ('<ul>'+ all.map(e=>`<li>${e.date} – ${e.type} – ${e.duration||''} min ${e.intensity?('– Int '+e.intensity):''} ${e.notes?('– '+e.notes):''}</li>`).join('') + '</ul>') : '<em>No extra workouts logged yet.</em>';
   }
+  function renderORMChart(){
+    const canvas = document.getElementById('exercise-chart'); if(!canvas || !window.Chart) return;
+    const ctx = canvas.getContext('2d');
+    const keys = ["Back Squat","Deadlift","Front Squat"];
+    const maxLen = Math.max(...keys.map(k=> (ormHistory[k]||[]).length));
+    const labels = Array.from({length:maxLen}, (_,i)=>`Update ${i+1}`);
+    const datasets = keys.map((k,i)=>({label:k,data:ormHistory[k]||[],borderColor:`hsl(${i*70},70%,40%)`,fill:false,tension:.2}));
+    if(window._chart) window._chart.destroy();
+    window._chart = new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
+  }
   function renderMoodChart(){
     const canvas = document.getElementById('mood-chart'); if(!canvas || !window.Chart) return;
     const ctx = canvas.getContext('2d');
@@ -426,11 +513,13 @@
     if(window._moodChart) window._moodChart.destroy();
     window._moodChart = new Chart(ctx,{
       type:'line',
-      data:{ labels,
+      data:{
+        labels,
         datasets:[
           {label:'Mood (4 Great → 1 Struggled)', data:dataPoints, borderColor:'rgba(0,0,0,0.6)', fill:false, tension:.15, pointRadius:3},
           {label:'7-day Rolling Avg', data:avg, borderColor:'rgba(33,150,243,0.8)', fill:false, tension:.2, pointRadius:0}
-        ]},
+        ]
+      },
       options:{responsive:true, plugins:{legend:{position:'bottom'}}, scales:{y:{min:1,max:4,ticks:{stepSize:1}}}}
     });
     const moodVals = dataPoints;
@@ -439,9 +528,9 @@
       <li><strong>Average mood (this phase):</strong> ${overall?overall.toFixed(2):'—'}</li>
     </ul>`;
   }
-  function renderStats(){ renderGlance(); renderStreaks(); renderExtraLists(); renderMoodChart(); }
+  function renderStats(){ renderGlance(); renderStreaks(); renderExtraLists(); renderORMChart(); renderMoodChart(); }
 
-  // Extras badge modal
+  // ------- Extras modal -------
   function showExtra(date){
     const arr = extraWorkouts[date]||[];
     const list = arr.length?('<ul>'+arr.map(e=>`<li><strong>${e.type}</strong> — ${e.duration||'-'} min ${e.intensity?('— Int '+e.intensity):''}<br><small>${e.notes||''}</small></li>`).join('')+'</ul>'):'<em>No extra workouts logged.</em>';
@@ -449,7 +538,7 @@
     m.querySelector('#close').onclick = ()=> m.remove();
   }
 
-  // Calendar
+  // ------- Calendar -------
   function renderMonth(){
     if(!data.schedule.length) buildSchedule();
     const grid = document.getElementById('calendar-grid'); if(!grid) return;
@@ -457,14 +546,14 @@
     const first = new Date(window._viewYear, window._viewMonth, 1);
     const last = new Date(window._viewYear, window._viewMonth+1, 0);
     document.getElementById('month-title').textContent = first.toLocaleString(undefined,{month:'long',year:'numeric'});
-    const startPad = first.getDay();
-    for(let i=0;i<startPad;i++){ grid.appendChild(document.createElement('div')); }
+    const padStart = first.getDay();
+    for(let i=0;i<padStart;i++){ grid.appendChild(document.createElement('div')); }
     let todayCell = null;
     for(let d=1; d<=last.getDate(); d++){
       const date = new Date(window._viewYear, window._viewMonth, d);
       const key = iso(date);
       const cell = document.createElement('div'); cell.className='day'; cell.setAttribute('data-date', key);
-      cell.innerHTML = `<div class="date-num">${d} ${dow(date)}</div>`;
+      cell.innerHTML = `<div class="date-num">${d} ${fmtDow(date)}</div>`;
       const sched = data.schedule.find(s => s.date===key);
       if(sched){
         cell.classList.add(`day${sched.dayIndex}`);
@@ -509,7 +598,7 @@
     }, {passive:true});
   }
 
-  // Init
+  // ------- Init -------
   document.addEventListener('DOMContentLoaded', () => {
     if(!data.schedule || !data.schedule.length){ buildSchedule(); }
     const now = new Date(); window._viewYear = now.getFullYear(); window._viewMonth = now.getMonth();
@@ -517,12 +606,15 @@
     document.getElementById('prev-month').onclick = ()=>{ window._viewMonth--; if(window._viewMonth<0){window._viewMonth=11;window._viewYear--;} renderMonth(); };
     document.getElementById('next-month').onclick = ()=>{ window._viewMonth++; if(window._viewMonth>11){window._viewMonth=0;window._viewYear++;} renderMonth(); };
     enableSwipe();
+
     document.getElementById('nav-calendar').onclick = ()=> toCalendar();
     document.getElementById('nav-stats').onclick    = ()=> toStats();
     document.getElementById('nav-goals').onclick    = ()=> toGoals();
     document.getElementById('back-btn').onclick     = ()=> toCalendar();
 
-    const addGoalBtn = document.getElementById('add-goal'); if(addGoalBtn){ addGoalBtn.onclick = ()=> showGoalForm(); }
+    // Goals add
+    const addGoalBtn = document.getElementById('add-goal');
+    if(addGoalBtn){ addGoalBtn.onclick = ()=> showGoalForm(); }
 
     // Update 1RMs
     document.getElementById('nav-orms').onclick = ()=>{
@@ -531,17 +623,24 @@
           <label>Back Squat: <input type="tel" inputmode="numeric" pattern="[0-9]*" name="Back Squat" value="${oneRepMax["Back Squat"]||0}"></label>
           <label>Deadlift: <input type="tel" inputmode="numeric" pattern="[0-9]*" name="Deadlift" value="${oneRepMax["Deadlift"]||0}"></label>
           <label>Front Squat: <input type="tel" inputmode="numeric" pattern="[0-9]*" name="Front Squat" value="${oneRepMax["Front Squat"]||0}"></label>
-          <div class="row right"><button type="button" id="cancel" class="primary" style="background:#888">Cancel</button><button type="submit" class="primary">Save</button></div>
+          <div class="row right">
+            <button type="button" id="cancel" class="primary" style="background:#888">Cancel</button>
+            <button type="submit" class="primary">Save</button>
+          </div>
         </form>`);
       m.querySelector('#cancel').onclick = ()=> m.remove();
       m.querySelector('#update-orms-form').onsubmit = (e)=>{
-        e.preventDefault(); const fd = new FormData(e.target);
-        ["Back Squat","Deadlift","Front Squat"].forEach(k=>{ const v = parseInt(fd.get(k)); if(!isNaN(v)&&v>0){ oneRepMax[k]=v; (ormHistory[k]||(ormHistory[k]=[])).push(v); } });
-        save(); m.remove(); toast("1RMs updated ✅"); updateStats();
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        ["Back Squat","Deadlift","Front Squat"].forEach(k=>{
+          const v = parseInt(fd.get(k));
+          if(!isNaN(v) && v>0){ oneRepMax[k]=v; (ormHistory[k]||(ormHistory[k]=[])).push(v); }
+        });
+        save(); m.remove(); toast("1RMs updated ✅"); renderORMChart();
       };
     };
 
-    // Log Extra
+    // Log Extra (with mood)
     document.getElementById('nav-extra').onclick = ()=>{
       const today = new Date().toISOString().slice(0,10);
       const m = modal(`<h3>Log Extra Workout</h3>
@@ -555,7 +654,10 @@
           <label>Duration (min): <input type="tel" inputmode="numeric" pattern="[0-9]*" id="extra-duration" min="1"></label>
           <label>Intensity (1-10): <input type="tel" inputmode="numeric" pattern="[0-9]*" id="extra-intensity" min="1" max="10"></label>
           <label>Notes:<textarea id="extra-notes"></textarea></label>
-          <div class="row right"><button type="button" id="cancel" class="primary" style="background:#888">Cancel</button><button type="submit" class="primary">Save</button></div>
+          <div class="row right">
+            <button type="button" id="cancel" class="primary" style="background:#888">Cancel</button>
+            <button type="submit" class="primary">Save</button>
+          </div>
         </form>`);
       m.querySelector('#cancel').onclick = ()=> m.remove();
       m.querySelector('#extra-form').onsubmit = (e)=>{
@@ -567,7 +669,6 @@
         const notes = m.querySelector('#extra-notes').value||'';
         (extraWorkouts[date]||(extraWorkouts[date]=[])).push({type,duration,intensity,notes});
         save(); renderMonth(); m.remove();
-        // mood prompt for extras
         const mm = modal(`<h3>How did that extra feel?</h3>
           <div class="row" style="justify-content:space-around">
             <button class="primary" data-mood="4">😀 Great</button>
@@ -576,10 +677,13 @@
             <button class="primary" data-mood="1">😫 Struggled</button>
           </div>`);
         mm.querySelectorAll('button.primary').forEach(b=>{
-          b.onclick = ()=>{ const score=parseInt(b.getAttribute('data-mood')); ensureMoodArray(date); moodLogs[date].push(score); save(); mm.remove(); updateStats(); };
+          b.onclick = ()=>{
+            const score=parseInt(b.getAttribute('data-mood'));
+            ensureMoodArray(date); moodLogs[date].push(score); save(); mm.remove(); updateStats();
+          };
         });
       };
     };
-  });
 
-})(); 
+  });
+})();
