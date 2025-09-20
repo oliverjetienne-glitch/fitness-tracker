@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Fitness Tracker v14.6</title>
+  <title>Fitness Tracker v14.9</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#ffffff" />
@@ -31,23 +31,29 @@
     </section>
 
     <section id="workout-view" class="hidden">
-      <div id="workout-header">
+      <div id="workout-header" class="row between">
         <button id="back-btn" class="ghost" aria-label="Back">←</button>
         <h2 id="workout-date-title"></h2>
+        <div style="width:32px"></div>
       </div>
-      <div id="workout-meta" class="card">
-        <div id="current-orm-box"></div>
+
+      <div class="card hero" id="day-hero">
+        <div id="current-orm-box" class="hero-orm"></div>
+        <div class="hero-sub">Stay consistent—small wins add up.</div>
       </div>
-      <div class="card themed" id="main-superset-card">
-        <h3>Main Superset</h3>
-        <div id="main-superset"></div>
+
+      <div class="card-group">
+        <div class="group-title">Main Lifts (Superset)</div>
+        <div id="main-superset" class="cards"></div>
       </div>
-      <div class="card themed" id="accessory-superset-card">
-        <h3>Accessory Superset</h3>
-        <div id="accessory-superset"></div>
+
+      <div class="card-group">
+        <div class="group-title">Accessories (Superset)</div>
+        <div id="accessory-superset" class="cards"></div>
       </div>
-      <div class="row right">
-        <button id="complete-workout" class="primary">Mark Workout Complete</button>
+
+      <div class="row right bottom-cta">
+        <button id="complete-workout" class="primary themed-btn">Mark Workout Complete</button>
       </div>
     </section>
 
@@ -97,11 +103,32 @@
 
   <!-- Bottom Navigation -->
   <nav id="bottom-nav">
-    <button id="nav-stats" class="nav-btn" title="Stats" aria-label="Stats">📊</button>
-    <button id="nav-calendar" class="nav-btn center" title="Calendar" aria-label="Calendar">📅</button>
-    <button id="nav-extra" class="nav-btn" title="Log Extra" aria-label="Log Extra">➕</button>
-    <button id="nav-orms" class="nav-btn" title="Update 1RMs" aria-label="Update 1RMs">💪</button>
-    <button id="nav-goals" class="nav-btn" title="Goals" aria-label="Goals">🎯</button>
+    <button id="nav-stats" class="nav-btn" title="Stats" aria-label="Stats">
+      <svg viewBox="0 0 24 24" class="icon"><path d="M3 17h2v-7H3v7zm4 0h2V7H7v10zm4 0h2v-4h-2v4zm4 0h2V4h-2v13zm4 0h2V10h-2v7z"/></svg>
+      <span>Stats</span>
+    </button>
+    <button id="nav-extra" class="nav-btn" title="Log Extra" aria-label="Log Extra">
+      <svg viewBox="0 0 24 24" class="icon"><path d="M19 13H13v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      <span>Extra</span>
+    </button>
+    <button id="nav-calendar" class="nav-btn center" title="Calendar" aria-label="Calendar">
+      <svg viewBox="0 0 24 24" class="icon"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 
+      2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 
+      16H5V9h14v11z"/></svg>
+      <span>Calendar</span>
+    </button>
+    <button id="nav-orms" class="nav-btn" title="Update 1RMs" aria-label="Update 1RMs">
+      <svg viewBox="0 0 24 24" class="icon"><path d="M4 10h2v4H4v-4zm14 0h2v4h-2v-4zM8 6h2v12H8V6zm6 0h2v12h-2V6z"/></svg>
+      <span>1RMs</span>
+    </button>
+    <button id="nav-goals" class="nav-btn" title="Goals" aria-label="Goals">
+      <svg viewBox="0 0 24 24" class="icon"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 
+      10 10 10-4.48 10-10S17.52 2 12 
+      2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 
+      8-8 8 3.59 8 8-3.59 8-8 
+      8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+      <span>Goals</span>
+    </button>
   </nav>
 
   <script src="app.js" defer></script>
