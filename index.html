@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Fitness Tracker v15.4</title>
+  <title>Fitness Tracker v15.5</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#ffffff" />
@@ -13,7 +13,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <!-- Top Banner -->
   <header id="top-banner">
     <div class="phase-title">Phase <span id="phase-num">1</span></div>
     <div id="phase-progress-container"><div id="phase-progress-bar"></div></div>
@@ -24,7 +23,6 @@
     </div>
   </header>
 
-  <!-- Main content -->
   <main>
     <section id="calendar-view" role="region" aria-label="Calendar">
       <div id="calendar-grid"></div>
@@ -36,22 +34,18 @@
         <h2 id="workout-date-title"></h2>
         <div style="width:32px"></div>
       </div>
-
       <div class="card hero" id="day-hero">
         <div class="hero-orm"></div>
         <div class="hero-sub">Stay consistent—small wins add up.</div>
       </div>
-
       <div class="card-group">
         <div class="group-title">Main Lifts (Superset)</div>
         <div id="main-superset" class="cards"></div>
       </div>
-
       <div class="card-group">
         <div class="group-title">Accessories (Superset)</div>
         <div id="accessory-superset" class="cards"></div>
       </div>
-
       <div class="row right bottom-cta">
         <button id="complete-workout" class="primary themed-btn">Mark Workout Complete</button>
       </div>
@@ -101,7 +95,6 @@
     </section>
   </main>
 
-  <!-- Bottom Navigation -->
   <nav id="bottom-nav">
     <button id="nav-stats" class="nav-btn" title="Stats" aria-label="Stats">
       <svg viewBox="0 0 24 24" class="icon"><path d="M3 17h2v-7H3v7zm4 0h2V7H7v10zm4 0h2v-4h-2v4zm4 0h2V4h-2v13zm4 0h2V10h-2v7z"/></svg>
@@ -113,7 +106,7 @@
     </button>
     <button id="nav-calendar" class="nav-btn center" title="Calendar" aria-label="Calendar">
       <svg viewBox="0 0 24 24" class="icon"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 
-      2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 
+      2 2h14c1.1 0 2-.9 2-2V6c-1.1-.9-2-2-2-2zm0 
       16H5V9h14v11z"/></svg>
       <span>Calendar</span>
     </button>
