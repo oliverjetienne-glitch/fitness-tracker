@@ -3,27 +3,25 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Fitness Tracker</title>
+  <title>Fitness Tracker v14.6</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#000000" />
+  <meta name="theme-color" content="#ffffff" />
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <!-- Top Banner -->
   <header id="top-banner">
-    <div class="phase-row">
-      <div class="phase-label">Phase <span id="phase-num">1</span></div>
-      <div id="month-header">
-        <button id="prev-month" aria-label="Prev">‹</button>
-        <span id="month-title"></span>
-        <button id="next-month" aria-label="Next">›</button>
-      </div>
-    </div>
+    <div class="phase-title">Phase <span id="phase-num">1</span></div>
     <div id="phase-progress-container"><div id="phase-progress-bar"></div></div>
+    <div id="month-header">
+      <button id="prev-month" aria-label="Previous Month">‹</button>
+      <span id="month-title"></span>
+      <button id="next-month" aria-label="Next Month">›</button>
+    </div>
   </header>
 
   <!-- Main content -->
@@ -34,7 +32,7 @@
 
     <section id="workout-view" class="hidden">
       <div id="workout-header">
-        <button id="back-btn" class="ghost">←</button>
+        <button id="back-btn" class="ghost" aria-label="Back">←</button>
         <h2 id="workout-date-title"></h2>
       </div>
       <div id="workout-meta" class="card">
@@ -54,13 +52,22 @@
     </section>
 
     <section id="stats-view" class="hidden">
+      <div class="card glance">
+        <h2>This Week at a Glance</h2>
+        <div id="glance-content"></div>
+      </div>
       <div class="card">
-        <h2>Your Stats</h2>
-        <div id="stats-content"></div>
+        <h2>Streaks</h2>
+        <div id="streaks-content"></div>
       </div>
       <div class="card">
         <h3>1RM Progress</h3>
         <canvas id="exercise-chart" height="200"></canvas>
+      </div>
+      <div class="card">
+        <h3>Mood Trend</h3>
+        <canvas id="mood-chart" height="200"></canvas>
+        <div id="mood-insights"></div>
       </div>
       <div class="card">
         <h3>Recent Extra Workouts</h3>
@@ -71,14 +78,30 @@
         <div id="extra-history"></div>
       </div>
     </section>
+
+    <section id="goals-view" class="hidden">
+      <div class="row between">
+        <h2 style="margin:6px 0">Goals</h2>
+        <button id="add-goal" class="primary" style="background:#6a1b9a">➕ Add Goal</button>
+      </div>
+      <div id="active-goals" class="card">
+        <h3>Active Goals</h3>
+        <div id="goals-list"></div>
+      </div>
+      <div id="completed-goals" class="card">
+        <h3>Completed Goals</h3>
+        <div id="goals-completed-list"></div>
+      </div>
+    </section>
   </main>
 
   <!-- Bottom Navigation -->
   <nav id="bottom-nav">
     <button id="nav-stats" class="nav-btn" title="Stats" aria-label="Stats">📊</button>
     <button id="nav-calendar" class="nav-btn center" title="Calendar" aria-label="Calendar">📅</button>
-    <button id="nav-extra" class="fab" title="Log Extra" aria-label="Log Extra">➕</button>
+    <button id="nav-extra" class="nav-btn" title="Log Extra" aria-label="Log Extra">➕</button>
     <button id="nav-orms" class="nav-btn" title="Update 1RMs" aria-label="Update 1RMs">💪</button>
+    <button id="nav-goals" class="nav-btn" title="Goals" aria-label="Goals">🎯</button>
   </nav>
 
   <script src="app.js" defer></script>
