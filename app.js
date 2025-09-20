@@ -1,6 +1,6 @@
-// Fitness Tracker v15.6 — Fixes: weekly completion, 1RM chart, full Goals, workout page colors, header week/day/date
+// Fitness Tracker v15.7 — Day3 yellow, anchored phase weeks, mini celebrations
 (function(){
-  const VERSION = '15.6';
+  const VERSION = '15.7';
   const pad = n => String(n).padStart(2,'0');
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const round5 = n => Math.round(n/5)*5;
@@ -121,10 +121,9 @@
   // ------- Phase helpers -------
   function phaseRange(){
     if(!data.schedule.length) buildSchedule();
-    const all = data.schedule.map(s=>s.date);
-    const first = new Date(all[0]);
-    const start = new Date(first); start.setDate(start.getDate() + (phase-1)*28);
-    const end = new Date(start); end.setDate(end.getDate()+27);
+    const first = new Date(data.schedule[0].date); // Tue 2025-09-23
+    const start = new Date(first); start.setDate(start.getDate() + (phase-1)*28); // Tue-based windows
+    const end = new Date(start); end.setDate(end.getDate()+27); // inclusive Tue..Mon
     return {start, end};
   }
   function inCurrentPhase(dateStr){
@@ -138,11 +137,17 @@
     const diff = Math.floor((d - start)/(1000*60*60*24));
     return Math.max(0, Math.floor(diff/7)); // 0..3 within phase
   }
-  function phaseWeekKey(dateStr){
+  function isPhaseWeekComplete(idx){
     const {start} = phaseRange();
-    const idx = phaseWeekIndex(dateStr);
     const wkStart = new Date(start); wkStart.setDate(start.getDate() + idx*7);
-    return iso(wkStart);
+    const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate()+6);
+    const inside = s=>{ const d=new Date(s.date); return d>=wkStart && d<=wkEnd; };
+    const d1 = data.schedule.find(s=> s.label==='Day 1' && inside(s));
+    const d2 = data.schedule.find(s=> s.label==='Day 2' && inside(s));
+    const d3 = data.schedule.find(s=> s.label==='Day 3' && inside(s));
+    return (!!d1 && data.completed.includes(d1.date)) &&
+           (!!d2 && data.completed.includes(d2.date)) &&
+           (!!d3 && data.completed.includes(d3.date));
   }
 
   // ------- UI helpers -------
@@ -163,6 +168,28 @@
     $('#phase-progress-bar').style.width = pct+'%';
   }
 
+  // ------- Mini Celebrations -------
+  function celebrateMini(theme='default'){
+    const layer = document.getElementById('celebration-layer');
+    layer.classList.remove('hidden');
+    const palette = theme==='extra' ? ['💜','✨','⭐'] :
+                    theme==='d1' ? ['💙','✨','⭐'] :
+                    theme==='d2' ? ['💚','✨','⭐'] :
+                    theme==='d3' ? ['💛','✨','⭐'] : ['🎉','✨','⭐'];
+    for(let i=0;i<18;i++){
+      const el = document.createElement('div');
+      el.className = 'confetti';
+      el.textContent = palette[i%palette.length];
+      el.style.left = Math.random()*100 + 'vw';
+      el.style.top = (Math.random()*10) + 'vh';
+      el.style.transform = `translateY(0) rotate(${Math.random()*40-20}deg)`;
+      el.style.animationDelay = (Math.random()*0.3)+'s';
+      layer.appendChild(el);
+      setTimeout(()=> el.remove(), 1400);
+    }
+    setTimeout(()=> layer.classList.add('hidden'), 1400);
+  }
+
   // ------- Workout -------
   function getWeekNumber(dateStr){ return phaseWeekIndex(dateStr)+1; }
   function renderCurrentORM(dayIndex){
@@ -176,7 +203,6 @@
   function openWorkout(dateStr){
     toWorkout();
     const sched = data.schedule.find(s=>s.date===dateStr);
-    // Restore themed colors per day on workout pages
     document.body.classList.remove('theme-d1','theme-d2','theme-d3','theme-extra');
     if(sched.dayIndex===1) document.body.classList.add('theme-d1');
     if(sched.dayIndex===2) document.body.classList.add('theme-d2');
@@ -243,7 +269,7 @@
     });
 
     const btn = document.getElementById('complete-workout');
-    btn.classList.add('themed-btn'); // color from --accent
+    btn.classList.add('themed-btn');
     btn.onclick = ()=>{
       if(!data.completed.includes(dateStr)) data.completed.push(dateStr);
       save();
@@ -258,6 +284,9 @@
         b.onclick = ()=>{
           const score = parseInt(b.getAttribute('data-mood'));
           ensureMoodArray(dateStr); moodLogs[dateStr].push(score); save(); m.remove();
+          // Mini celebration per day theme
+          const theme = (sched.dayIndex===1?'d1':sched.dayIndex===2?'d2':'d3');
+          celebrateMini(theme);
           toCalendar(); renderMonth(); updateStats(); checkPhaseComplete();
         };
       });
@@ -273,7 +302,7 @@
     document.body.appendChild(m); return m;
   }
 
-  // ------- v15.6 helpers (Stats, Weeks, Phase Complete) -------
+  // ------- Stats helpers -------
   function ensureMoodArray(date){
     const v = moodLogs[date];
     if(v==null){ moodLogs[date] = []; }
@@ -282,42 +311,8 @@
     else { moodLogs[date] = []; }
   }
   function updateStats(){ try{ renderGlance(); renderStreaks(); renderExtraLists(); renderMoodChart(); renderORMChart(); }catch(e){} }
-  function isPhaseWeekComplete(idx){
-    // find all scheduled days in this phase-week index
-    const {start} = phaseRange();
-    const wkStart = new Date(start); wkStart.setDate(start.getDate() + idx*7);
-    const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate()+6);
-    const sched = data.schedule.filter(s=>{
-      const d = new Date(s.date);
-      return d>=wkStart && d<=wkEnd && inCurrentPhase(s.date);
-    });
-    const d1 = sched.find(s=>s.label==='Day 1');
-    const d2 = sched.find(s=>s.label==='Day 2');
-    const d3 = sched.find(s=>s.label==='Day 3');
-    return (!!d1 && data.completed.includes(d1.date)) &&
-           (!!d2 && data.completed.includes(d2.date)) &&
-           (!!d3 && data.completed.includes(d3.date));
-  }
-  function checkPhaseComplete(){
-    const idxs = [0,1,2,3];
-    const allDone = idxs.every(isPhaseWeekComplete);
-    if(allDone){
-      const m = modal(`<h2>🎉 Phase ${phase} Complete!</h2>
-        <p>Killer work. Ready to set new 1RMs for Phase ${phase+1}?</p>
-        <div class="row right">
-          <button id="later" class="primary" style="background:#888">Later</button>
-          <button id="next" class="primary">Start Phase ${phase+1}</button>
-        </div>`);
-      m.querySelector('#later').onclick = ()=> m.remove();
-      m.querySelector('#next').onclick = ()=>{
-        phase += 1; save(); m.remove();
-        document.getElementById('nav-orms').click();
-        toCalendar(); renderMonth(); updateStats();
-      };
-    }
-  }
 
-  // ------- Goals (full) -------
+  // ------- Goals (same as v15.6 full) -------
   function uid(){ return Math.random().toString(36).slice(2); }
   function computeGoalProgress(g){
     if(g.completed) return 1;
@@ -328,15 +323,13 @@
       return Math.min(1, current / Math.max(1,g.target||1));
     }
     if(g.type==='extras_week'){
-      // Count extras in current phase week containing "now"
-      const now = new Date();
-      const wkIdx = phaseWeekIndex(iso(now));
+      const today = iso(new Date());
+      const idx = phaseWeekIndex(today);
       const {start} = phaseRange();
-      const wkStart = new Date(start); wkStart.setDate(start.getDate() + wkIdx*7);
+      const wkStart = new Date(start); wkStart.setDate(start.getDate() + idx*7);
       const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate()+6);
       const count = Object.keys(extraWorkouts).filter(date=>{
-        const d=new Date(date);
-        return d>=wkStart && d<=wkEnd && inCurrentPhase(date) && (extraWorkouts[date]||[]).length>0;
+        const d=new Date(date); return d>=wkStart && d<=wkEnd && inCurrentPhase(date) && (extraWorkouts[date]||[]).length>0;
       }).length;
       return Math.min(1, count / Math.max(1,g.target||1));
     }
@@ -347,7 +340,6 @@
     const comp = document.getElementById('goals-completed-list');
     if(!list||!comp) return;
     list.innerHTML=''; comp.innerHTML='';
-
     goals.forEach(g=>{
       const value = computeGoalProgress(g);
       const deadline = g.deadline ? new Date(g.deadline) : null;
@@ -433,7 +425,6 @@
   // ------- Stats -------
   function renderGlance(){
     const el = document.getElementById('glance-content'); if(!el) return;
-    // Use current phase week bucket
     const today = iso(new Date());
     const idx = phaseWeekIndex(today);
     const {start} = phaseRange();
@@ -455,7 +446,6 @@
     const el = document.getElementById('streaks-content'); if(!el) return;
     const weeks = [0,1,2,3].map(idx=>{
       const full = isPhaseWeekComplete(idx);
-      // extras present in that week?
       const {start} = phaseRange();
       const ws = new Date(start); ws.setDate(start.getDate()+idx*7);
       const we = new Date(ws); we.setDate(ws.getDate()+6);
@@ -522,11 +512,6 @@
       },
       options:{responsive:true, plugins:{legend:{position:'bottom'}}, scales:{y:{min:1,max:4,ticks:{stepSize:1}}}}
     });
-    const moodVals = dataPoints;
-    const overall = moodVals.length ? (moodVals.reduce((a,b)=>a+b,0)/moodVals.length) : 0;
-    document.getElementById('mood-insights').innerHTML = `<ul>
-      <li><strong>Average mood (this phase):</strong> ${overall?overall.toFixed(2):'—'}</li>
-    </ul>`;
   }
   function renderStats(){ renderGlance(); renderStreaks(); renderExtraLists(); renderORMChart(); renderMoodChart(); }
 
@@ -612,7 +597,7 @@
     document.getElementById('nav-goals').onclick    = ()=> toGoals();
     document.getElementById('back-btn').onclick     = ()=> toCalendar();
 
-    // Goals add
+    // Add Goal
     const addGoalBtn = document.getElementById('add-goal');
     if(addGoalBtn){ addGoalBtn.onclick = ()=> showGoalForm(); }
 
@@ -640,7 +625,7 @@
       };
     };
 
-    // Log Extra (with mood)
+    // Log Extra (with mood + mini celebration)
     document.getElementById('nav-extra').onclick = ()=>{
       const today = new Date().toISOString().slice(0,10);
       const m = modal(`<h3>Log Extra Workout</h3>
@@ -679,7 +664,10 @@
         mm.querySelectorAll('button.primary').forEach(b=>{
           b.onclick = ()=>{
             const score=parseInt(b.getAttribute('data-mood'));
-            ensureMoodArray(date); moodLogs[date].push(score); save(); mm.remove(); updateStats();
+            if(!Array.isArray(moodLogs[date])) moodLogs[date]= (moodLogs[date]==null?[]:[moodLogs[date]].flat());
+            moodLogs[date].push(score); save(); mm.remove();
+            celebrateMini('extra');
+            updateStats();
           };
         });
       };
