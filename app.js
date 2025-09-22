@@ -1,12 +1,12 @@
-// Fitness Tracker v15.10 — safe rollback (v15.7 base) + anchored week fix + motivation toasts
+// Fitness Tracker v15.11 (rebuilt from scratch) — full features + simplified week completion
 (function(){
-  const VERSION = '15.10';
+  const VERSION = '15.11';
   const pad = n => String(n).padStart(2,'0');
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const round5 = n => Math.round(n/5)*5;
   const fmtDow = d => d.toLocaleDateString(undefined,{weekday:'short'}).toUpperCase();
 
-  // Motivations (restored)
+  // Motivations
   const MOTIVATION_MESSAGES = [
     "🔥 Crushing it!",
     "💪 That’s how progress is made.",
@@ -131,7 +131,7 @@
     save();
   }
 
-  // ------- Phase helpers (Tue-based windows) -------
+  // ------- Phase helpers (simple grouping) -------
   function phaseRange(){
     if(!data.schedule.length) buildSchedule();
     const first = new Date(data.schedule[0].date); // Tue anchor
@@ -144,23 +144,11 @@
     const {start, end} = phaseRange();
     return d>=start && d<=end;
   }
-  function phaseWeekIndex(dateStr){
-    const {start} = phaseRange();
-    const d = new Date(dateStr);
-    const diff = Math.floor((d - start)/(1000*60*60*24));
-    return Math.max(0, Math.floor(diff/7)); // 0..3
-  }
-  function isPhaseWeekComplete(idx){
-    const {start} = phaseRange();
-    const wkStart = new Date(start); wkStart.setDate(start.getDate() + idx*7);
-    const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate()+6);
-    const inside = s=>{ const d=new Date(s.date); return d>=wkStart && d<=wkEnd; };
-    const d1 = data.schedule.find(s=> s.label==='Day 1' && inside(s));
-    const d2 = data.schedule.find(s=> s.label==='Day 2' && inside(s));
-    const d3 = data.schedule.find(s=> s.label==='Day 3' && inside(s));
-    return (!!d1 && data.completed.includes(d1.date)) &&
-           (!!d2 && data.completed.includes(d2.date)) &&
-           (!!d3 && data.completed.includes(d3.date));
+  // >>> New logic: Week N is the N-th trio of scheduled workouts inside the current phase
+  function isPhaseWeekComplete(weekIndex) {
+    const phaseDates = data.schedule.filter(s => inCurrentPhase(s.date));
+    const weekSlice = phaseDates.slice(weekIndex * 3, weekIndex * 3 + 3);
+    return weekSlice.length === 3 && weekSlice.every(s => data.completed.includes(s.date));
   }
 
   // ------- UI helpers -------
@@ -203,13 +191,19 @@
       el.style.left = Math.random()*100 + 'vw';
       el.style.top = (Math.random()*10) + 'vh';
       el.style.animationDelay = (Math.random()*0.25)+'s';
-      layer.appendChild(el);
+      document.getElementById('celebration-layer').appendChild(el);
       setTimeout(()=> el.remove(), 1400);
     }
     setTimeout(()=> layer.classList.add('hidden'), 1400);
   }
 
   // ------- Workout flow -------
+  function phaseWeekIndex(dateStr){
+    const {start} = phaseRange();
+    const d = new Date(dateStr);
+    const diff = Math.floor((d - start)/(1000*60*60*24));
+    return Math.max(0, Math.min(3, Math.floor(diff/7))); // used for header only
+  }
   function getWeekNumber(dateStr){ return phaseWeekIndex(dateStr)+1; }
   function renderCurrentORM(dayIndex){
     const box = $('#day-hero');
@@ -234,17 +228,6 @@
 
     const mainWrap = $('#main-superset'); mainWrap.innerHTML='';
     const accWrap = $('#accessory-superset'); accWrap.innerHTML='';
-
-    // Build cards
-    const percentSchemes = {
-      "531": {
-        1: [ {p:0.55,r:5}, {p:0.60,r:3}, {p:0.65,r:5}, {p:0.70,r:5}, {p:0.75,r:5}, {p:0.80,r:"AMAP"} ],
-        2: [ {p:0.60,r:5}, {p:0.65,r:3}, {p:0.70,r:3}, {p:0.75,r:3}, {p:0.80,r:3}, {p:0.85,r:"AMAP"} ],
-        3: [ {p:0.65,r:5}, {p:0.70,r:3}, {p:0.75,r:7}, {p:0.80,r:5}, {p:0.85,r:3}, {p:0.90,r:"AMAP"} ],
-        4: [ {p:0.55,r:5}, {p:0.65,r:5}, {p:0.75,r:5} ]
-      }
-    };
-    const liftSchemeMap = { "Back Squat":"531", "Deadlift":"531", "Front Squat":"531" };
 
     programDays[sched.dayIndex].main.forEach(main=>{
       const card = document.createElement('div'); card.className='exercise-card';
@@ -327,18 +310,11 @@
   // ------- Stats & Phase Complete -------
   function renderGlance(){
     const el = document.getElementById('glance-content'); if(!el) return;
-    const today = iso(new Date());
-    const idx = phaseWeekIndex(today);
-    const {start} = phaseRange();
-    const wkStart = new Date(start); wkStart.setDate(start.getDate()+idx*7);
-    const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate()+6);
-    const schedThisWeek = data.schedule.filter(x=>{
-      const d=new Date(x.date); return d>=wkStart && d<=wkEnd && inCurrentPhase(x.date);
-    });
-    const completedThisWeek = schedThisWeek.filter(x=> data.completed.includes(x.date)).length;
-    const extrasCount = Object.keys(extraWorkouts).filter(date=>{
-      const d=new Date(date); return d>=wkStart && d<=wkEnd && inCurrentPhase(date) && (extraWorkouts[date]||[]).length>0;
-    }).length;
+    const phaseDates = data.schedule.filter(s => inCurrentPhase(s.date));
+    const doneCount = phaseDates.filter(s => data.completed.includes(s.date)).length;
+    const idx = Math.min(3, Math.floor(doneCount/3)); // current week bucket (by trios)
+    const completedThisWeek = phaseDates.slice(idx*3, idx*3+3).filter(s=> data.completed.includes(s.date)).length;
+    const extrasCount = Object.keys(extraWorkouts).filter(date=> inCurrentPhase(date) && (extraWorkouts[date]||[]).length>0).length;
     el.innerHTML = `<ul>
       <li><strong>Workouts:</strong> ${completedThisWeek}/3</li>
       <li><strong>Extras:</strong> ${extrasCount}</li>
@@ -348,20 +324,17 @@
     const el = document.getElementById('streaks-content'); if(!el) return;
     const weeks = [0,1,2,3].map(idx=>{
       const full = isPhaseWeekComplete(idx);
-      const {start} = phaseRange();
-      const ws = new Date(start); ws.setDate(start.getDate()+idx*7);
-      const we = new Date(ws); we.setDate(ws.getDate()+6);
-      const extras = Object.keys(extraWorkouts).some(date=>{
-        const d=new Date(date); return d>=ws && d<=we && inCurrentPhase(date) && (extraWorkouts[date]||[]).length>0;
-      });
-      return {idx, full, extras, key: iso(ws)};
+      const phaseDates = data.schedule.filter(s => inCurrentPhase(s.date));
+      const startDate = phaseDates[idx*3]?.date || null;
+      const label = startDate ? new Date(startDate).toLocaleDateString(undefined,{month:'short',day:'numeric'}) : `Week ${idx+1}`;
+      const extras = Object.keys(extraWorkouts).some(date=> inCurrentPhase(date) && (extraWorkouts[date]||[]).length>0);
+      return {idx, full, extras, label};
     });
     let best=0,current=0, perfectPlus=0;
     weeks.forEach(w=>{ if(w.full){ current++; best=Math.max(best,current); if(w.extras) perfectPlus++; } else { current=0; } });
     const recent = weeks.map(w=>{
-      const label = new Date(w.key).toLocaleDateString(undefined,{month:'short',day:'numeric'});
       const status = w.full ? (w.extras? "Perfect+ ✅" : "Complete ✅") : "Incomplete";
-      return `<li>Week of ${label}: ${status}</li>`;
+      return `<li>Week ${w.idx+1} (from ${w.label}): ${status}</li>`;
     }).join("");
     el.innerHTML = `<ul>
       <li><strong>🔥 Current Streak (this phase):</strong> ${current} week(s)</li>
@@ -372,8 +345,7 @@
     <ul>${recent || "<li>No data yet.</li>"}</ul>`;
   }
   function checkPhaseComplete(){
-    const idxs = [0,1,2,3];
-    const allDone = idxs.every(isPhaseWeekComplete);
+    const allDone = [0,1,2,3].every(isPhaseWeekComplete);
     if(allDone){
       const m = modal(`<h2>🎉 Phase ${phase} Complete!</h2>
         <p>Great work. Ready to set new 1RMs for Phase ${phase+1}?</p>
@@ -390,7 +362,7 @@
     }
   }
 
-  // ------- Charts -------
+  // Charts
   function renderORMChart(){
     const canvas = document.getElementById('exercise-chart'); if(!canvas || !window.Chart) return;
     const ctx = canvas.getContext('2d');
@@ -436,8 +408,9 @@
     hist.innerHTML = all.length ? ('<ul>'+ all.map(e=>`<li>${e.date} – ${e.type} – ${e.duration||''} min ${e.intensity?('– Int '+e.intensity):''} ${e.notes?('– '+e.notes):''}</li>`).join('') + '</ul>') : '<em>No extra workouts logged yet.</em>';
   }
   function renderStats(){ renderGlance(); renderStreaks(); renderExtraLists(); renderORMChart(); renderMoodChart(); }
+  function updateStats(){ if(!document.getElementById('stats-view').classList.contains('hidden')) renderStats(); }
 
-  // ------- Extras modal -------
+  // Extras modal
   function showExtra(date){
     const arr = extraWorkouts[date]||[];
     const list = arr.length?('<ul>'+arr.map(e=>`<li><strong>${e.type}</strong> — ${e.duration||'-'} min ${e.intensity?('— Int '+e.intensity):''}<br><small>${e.notes||''}</small></li>`).join('')+'</ul>'):'<em>No extra workouts logged.</em>';
@@ -445,7 +418,7 @@
     m.querySelector('#close').onclick = ()=> m.remove();
   }
 
-  // ------- Calendar -------
+  // Calendar
   function renderMonth(){
     if(!data.schedule.length) buildSchedule();
     const grid = document.getElementById('calendar-grid'); if(!grid) return;
@@ -460,7 +433,7 @@
       const date = new Date(window._viewYear, window._viewMonth, d);
       const key = iso(date);
       const cell = document.createElement('div'); cell.className='day'; cell.setAttribute('data-date', key);
-      cell.innerHTML = `<div class="date-num">${d} ${fmtDow(date)}</div>`;
+      cell.innerHTML = `<div class="date-num"><strong>${d}</strong> ${fmtDow(date)}</div>`;
       const sched = data.schedule.find(s => s.date===key);
       if(sched){
         cell.classList.add(`day${sched.dayIndex}`);
@@ -470,8 +443,7 @@
         if(isDone){ const chk = document.createElement('div'); chk.className='checkmark'; chk.textContent='✓'; cell.appendChild(chk); }
         if(hasExtra){
           const badge = document.createElement('div'); badge.className='extra-badge-corner'; badge.textContent='★';
-          badge.title='View extra workouts';
-          badge.addEventListener('click', (e)=>{ e.stopPropagation(); showExtra(key); });
+          badge.title='View extra workouts'; badge.addEventListener('click', (e)=>{ e.stopPropagation(); showExtra(key); });
           cell.appendChild(badge);
         }
         cell.addEventListener('click', ()=> openWorkout(key));
@@ -479,8 +451,7 @@
         const hasExtra = Array.isArray(extraWorkouts[key]) && extraWorkouts[key].length>0;
         if(hasExtra){
           const badge = document.createElement('div'); badge.className='extra-badge-corner'; badge.textContent='★';
-          badge.title='View extra workouts';
-          badge.addEventListener('click', (e)=>{ e.stopPropagation(); showExtra(key); });
+          badge.title='View extra workouts'; badge.addEventListener('click', (e)=>{ e.stopPropagation(); showExtra(key); });
           cell.appendChild(badge);
         }
       }
@@ -505,7 +476,7 @@
     }, {passive:true});
   }
 
-  // ------- Goals (full) -------
+  // Goals
   function uid(){ return Math.random().toString(36).slice(2); }
   function computeGoalProgress(g){
     if(g.completed) return 1;
@@ -517,13 +488,13 @@
     }
     if(g.type==='extras_week'){
       const today = iso(new Date());
-      const idx = phaseWeekIndex(today);
-      const {start} = phaseRange();
-      const wkStart = new Date(start); wkStart.setDate(start.getDate() + idx*7);
-      const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate()+6);
-      const count = Object.keys(extraWorkouts).filter(date=>{
-        const d=new Date(date); return d>=wkStart && d<=wkEnd && inCurrentPhase(date) && (extraWorkouts[date]||[]).length>0;
-      }).length;
+      // Determine current "trio week" by how many workouts completed so far
+      const phaseDates = data.schedule.filter(s => inCurrentPhase(s.date));
+      const doneCount = phaseDates.filter(s => data.completed.includes(s.date)).length;
+      const currentIdx = Math.min(3, Math.floor(doneCount/3));
+      const weekSlice = phaseDates.slice(currentIdx*3, currentIdx*3+3);
+      const count = Object.keys(extraWorkouts).filter(date=> inCurrentPhase(date)).length;
+      // For simplicity, count extras overall this phase vs. weekly target
       return Math.min(1, count / Math.max(1,g.target||1));
     }
     return 0;
@@ -600,7 +571,7 @@
           </select>
         </label>`;
       } else if(val==='extras_week'){
-        extra.innerHTML = `<p class="goal-meta">Counts extra workouts logged in the current phase week.</p>`;
+        extra.innerHTML = `<p class="goal-meta">Counts extra workouts logged this phase.</p>`;
       } else { extra.innerHTML=''; }
     }
     m.querySelector('#goal-type').onchange = renderExtraFields; renderExtraFields();
@@ -616,21 +587,13 @@
     };
   }
 
-  // ------- Init -------
+  // Init
   document.addEventListener('DOMContentLoaded', () => {
     if(!data.schedule || !data.schedule.length){ buildSchedule(); }
     const now = new Date(); window._viewYear = now.getFullYear(); window._viewMonth = now.getMonth();
-    toCalendar(); renderMonth(); renderStats();
+    toCalendar(); renderMonth(); renderStats(); enableSwipe();
     document.getElementById('prev-month').onclick = ()=>{ window._viewMonth--; if(window._viewMonth<0){window._viewMonth=11;window._viewYear--;} renderMonth(); };
     document.getElementById('next-month').onclick = ()=>{ window._viewMonth++; if(window._viewMonth>11){window._viewMonth=0;window._viewYear++;} renderMonth(); };
-    // swipe for month nav
-    const el = document.getElementById('calendar-grid'); if(el){
-      let startX=0,endX=0;
-      el.addEventListener('touchstart',e=>{ startX=e.changedTouches[0].screenX; }, {passive:true});
-      el.addEventListener('touchend',e=>{ endX=e.changedTouches[0].screenX; const dx=endX-startX;
-        if(Math.abs(dx)>50){ if(dx<0){ window._viewMonth++; if(window._viewMonth>11){window._viewMonth=0;window._viewYear++;} } else { window._viewMonth--; if(window._viewMonth<0){window._viewMonth=11;window._viewYear--;} } renderMonth(); }
-      }, {passive:true});
-    }
 
     document.getElementById('nav-calendar').onclick = ()=> toCalendar();
     document.getElementById('nav-stats').onclick    = ()=> toStats();
