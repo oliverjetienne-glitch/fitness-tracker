@@ -1,43 +1,23 @@
-
-// --- v15.9 Motivations ---
-const MOTIVATION_MESSAGES = [
-  "🔥 Crushing it!",
-  "💪 That’s how progress is made.",
-  "⚡ Energy well spent!",
-  "✨ Keep building momentum.",
-  "👏 Another win in the books!",
-  "🚀 Stronger every session.",
-  "🌟 Great consistency!",
-  "🏋️ Gains unlocked.",
-  "TEST BUILD v15.9 – Motivation Active"
-];
-function randomMotivation(){
-  return MOTIVATION_MESSAGES[Math.floor(Math.random()*MOTIVATION_MESSAGES.length)];
-}
-
-
-// --- v15.8 Motivations ---
-const MOTIVATION_MESSAGES = [
-  "🔥 Crushing it!",
-  "💪 That’s how progress is made.",
-  "⚡ Energy well spent!",
-  "✨ Keep building momentum.",
-  "👏 Another win in the books!",
-  "🚀 Stronger every session.",
-  "🌟 Great consistency!",
-  "🏋️ Gains unlocked."
-];
-function randomMotivation(){
-  return MOTIVATION_MESSAGES[Math.floor(Math.random()*MOTIVATION_MESSAGES.length)];
-}
-
-// Fitness Tracker v15.7 — Day3 yellow, anchored phase weeks, mini celebrations
+// Fitness Tracker v15.10 — safe rollback (v15.7 base) + anchored week fix + motivation toasts
 (function(){
-  const VERSION = '15.9';
+  const VERSION = '15.10';
   const pad = n => String(n).padStart(2,'0');
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const round5 = n => Math.round(n/5)*5;
   const fmtDow = d => d.toLocaleDateString(undefined,{weekday:'short'}).toUpperCase();
+
+  // Motivations (restored)
+  const MOTIVATION_MESSAGES = [
+    "🔥 Crushing it!",
+    "💪 That’s how progress is made.",
+    "⚡ Energy well spent!",
+    "✨ Keep building momentum.",
+    "👏 Another win in the books!",
+    "🚀 Stronger every session.",
+    "🌟 Great consistency!",
+    "🏋️ Gains unlocked."
+  ];
+  const randomMotivation = () => MOTIVATION_MESSAGES[Math.floor(Math.random()*MOTIVATION_MESSAGES.length)];
 
   if(localStorage.getItem('appVersion') !== VERSION){
     localStorage.setItem('appVersion', VERSION);
@@ -131,11 +111,11 @@ function randomMotivation(){
   };
   const liftSchemeMap = { "Back Squat":"531", "Deadlift":"531", "Front Squat":"531" };
 
-  // ------- Schedule -------
+  // ------- Schedule (anchored to 2025-09-23 Tue) -------
   function* scheduleGenerator(startDate, weeks=104){
     for(let k=0;k<weeks;k++){
       const base = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + k*7);
-      const d1 = new Date(base); d1.setDate(base.getDate() + (k%2===0 ? 0 : -1)); // Tue then Mon from 2025-09-23
+      const d1 = new Date(base); d1.setDate(base.getDate() + (k%2===0 ? 0 : -1)); // Tue then Mon
       yield { date: iso(d1), dayIndex: 1, label: "Day 1" };
       const d2 = new Date(base); d2.setDate(base.getDate()+1); // Wed
       yield { date: iso(d2), dayIndex: 2, label: "Day 2" };
@@ -151,12 +131,12 @@ function randomMotivation(){
     save();
   }
 
-  // ------- Phase helpers -------
+  // ------- Phase helpers (Tue-based windows) -------
   function phaseRange(){
     if(!data.schedule.length) buildSchedule();
-    const first = new Date(data.schedule[0].date); // Tue 2025-09-23
-    const start = new Date(first); start.setDate(start.getDate() + (phase-1)*28); // Tue-based windows
-    const end = new Date(start); end.setDate(end.getDate()+27); // inclusive Tue..Mon
+    const first = new Date(data.schedule[0].date); // Tue anchor
+    const start = new Date(first); start.setDate(start.getDate() + (phase-1)*28);
+    const end = new Date(start); end.setDate(end.getDate()+27);
     return {start, end};
   }
   function inCurrentPhase(dateStr){
@@ -168,7 +148,7 @@ function randomMotivation(){
     const {start} = phaseRange();
     const d = new Date(dateStr);
     const diff = Math.floor((d - start)/(1000*60*60*24));
-    return Math.max(0, Math.floor(diff/7)); // 0..3 within phase
+    return Math.max(0, Math.floor(diff/7)); // 0..3
   }
   function isPhaseWeekComplete(idx){
     const {start} = phaseRange();
@@ -201,7 +181,14 @@ function randomMotivation(){
     $('#phase-progress-bar').style.width = pct+'%';
   }
 
-  // ------- Mini Celebrations -------
+  // ------- Toast & Modal & Celebrations -------
+  function toast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 1600); }
+  function modal(html){
+    const m = document.createElement('div'); m.className='modal'; m.innerHTML = `<div class="modal-inner card">${html}</div>`;
+    m.addEventListener('click', e=>{ if(e.target===m) m.remove(); });
+    document.addEventListener('keydown', function esc(e){ if(e.key==='Escape'){ m.remove(); document.removeEventListener('keydown', esc); } });
+    document.body.appendChild(m); return m;
+  }
   function celebrateMini(theme='default'){
     const layer = document.getElementById('celebration-layer');
     layer.classList.remove('hidden');
@@ -209,21 +196,20 @@ function randomMotivation(){
                     theme==='d1' ? ['💙','✨','⭐'] :
                     theme==='d2' ? ['💚','✨','⭐'] :
                     theme==='d3' ? ['💛','✨','⭐'] : ['🎉','✨','⭐'];
-    for(let i=0;i<18;i++){
+    for(let i=0;i<16;i++){
       const el = document.createElement('div');
       el.className = 'confetti';
       el.textContent = palette[i%palette.length];
       el.style.left = Math.random()*100 + 'vw';
       el.style.top = (Math.random()*10) + 'vh';
-      el.style.transform = `translateY(0) rotate(${Math.random()*40-20}deg)`;
-      el.style.animationDelay = (Math.random()*0.3)+'s';
+      el.style.animationDelay = (Math.random()*0.25)+'s';
       layer.appendChild(el);
       setTimeout(()=> el.remove(), 1400);
     }
     setTimeout(()=> layer.classList.add('hidden'), 1400);
   }
 
-  // ------- Workout -------
+  // ------- Workout flow -------
   function getWeekNumber(dateStr){ return phaseWeekIndex(dateStr)+1; }
   function renderCurrentORM(dayIndex){
     const box = $('#day-hero');
@@ -248,6 +234,17 @@ function randomMotivation(){
 
     const mainWrap = $('#main-superset'); mainWrap.innerHTML='';
     const accWrap = $('#accessory-superset'); accWrap.innerHTML='';
+
+    // Build cards
+    const percentSchemes = {
+      "531": {
+        1: [ {p:0.55,r:5}, {p:0.60,r:3}, {p:0.65,r:5}, {p:0.70,r:5}, {p:0.75,r:5}, {p:0.80,r:"AMAP"} ],
+        2: [ {p:0.60,r:5}, {p:0.65,r:3}, {p:0.70,r:3}, {p:0.75,r:3}, {p:0.80,r:3}, {p:0.85,r:"AMAP"} ],
+        3: [ {p:0.65,r:5}, {p:0.70,r:3}, {p:0.75,r:7}, {p:0.80,r:5}, {p:0.85,r:3}, {p:0.90,r:"AMAP"} ],
+        4: [ {p:0.55,r:5}, {p:0.65,r:5}, {p:0.75,r:5} ]
+      }
+    };
+    const liftSchemeMap = { "Back Squat":"531", "Deadlift":"531", "Front Squat":"531" };
 
     programDays[sched.dayIndex].main.forEach(main=>{
       const card = document.createElement('div'); card.className='exercise-card';
@@ -316,146 +313,18 @@ function randomMotivation(){
       m.querySelectorAll('button.primary').forEach(b=>{
         b.onclick = ()=>{
           const score = parseInt(b.getAttribute('data-mood'));
-          ensureMoodArray(dateStr); moodLogs[dateStr].push(score); save(); m.remove();
-          // Mini celebration per day theme
+          if(!Array.isArray(moodLogs[dateStr])) moodLogs[dateStr]= (moodLogs[dateStr]==null?[]:[moodLogs[dateStr]].flat());
+          moodLogs[dateStr].push(score); save(); m.remove();
           const theme = (sched.dayIndex===1?'d1':sched.dayIndex===2?'d2':'d3');
           celebrateMini(theme);
+          toast(randomMotivation());
           toCalendar(); renderMonth(); updateStats(); checkPhaseComplete();
         };
       });
     };
   }
 
-  // ------- Toast & Modal -------
-  function toast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 1800); }
-  function modal(html){
-    const m = document.createElement('div'); m.className='modal'; m.innerHTML = `<div class="modal-inner card">${html}</div>`;
-    m.addEventListener('click', e=>{ if(e.target===m) m.remove(); });
-    document.addEventListener('keydown', function esc(e){ if(e.key==='Escape'){ m.remove(); document.removeEventListener('keydown', esc); } });
-    document.body.appendChild(m); return m;
-  }
-
-  // ------- Stats helpers -------
-  function ensureMoodArray(date){
-    const v = moodLogs[date];
-    if(v==null){ moodLogs[date] = []; }
-    else if(typeof v === 'number'){ moodLogs[date] = [v]; }
-    else if(Array.isArray(v)){ /* ok */ }
-    else { moodLogs[date] = []; }
-  }
-  function updateStats(){ try{ renderGlance(); renderStreaks(); renderExtraLists(); renderMoodChart(); renderORMChart(); }catch(e){} }
-
-  // ------- Goals (same as v15.6 full) -------
-  function uid(){ return Math.random().toString(36).slice(2); }
-  function computeGoalProgress(g){
-    if(g.completed) return 1;
-    if(g.type==='manual'){ return Math.min(1, (g.progress||0) / Math.max(1,g.target||1)); }
-    if(g.type==='1rm'){
-      const ex = g.link?.exercise; if(!ex) return 0;
-      const current = oneRepMax[ex]||0;
-      return Math.min(1, current / Math.max(1,g.target||1));
-    }
-    if(g.type==='extras_week'){
-      const today = iso(new Date());
-      const idx = phaseWeekIndex(today);
-      const {start} = phaseRange();
-      const wkStart = new Date(start); wkStart.setDate(start.getDate() + idx*7);
-      const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate()+6);
-      const count = Object.keys(extraWorkouts).filter(date=>{
-        const d=new Date(date); return d>=wkStart && d<=wkEnd && inCurrentPhase(date) && (extraWorkouts[date]||[]).length>0;
-      }).length;
-      return Math.min(1, count / Math.max(1,g.target||1));
-    }
-    return 0;
-  }
-  function renderGoals(){
-    const list = document.getElementById('goals-list');
-    const comp = document.getElementById('goals-completed-list');
-    if(!list||!comp) return;
-    list.innerHTML=''; comp.innerHTML='';
-    goals.forEach(g=>{
-      const value = computeGoalProgress(g);
-      const deadline = g.deadline ? new Date(g.deadline) : null;
-      const daysLeft = deadline ? Math.ceil((deadline - new Date())/(1000*60*60*24)) : null;
-      const status = g.completed ? 'Completed' : (daysLeft!=null && daysLeft<0 ? 'Missed' : (value>=1 ? 'Ready to complete' : 'On Track'));
-      const card = document.createElement('div'); card.className='goal-card';
-      card.innerHTML = `
-        <div class="goal-title">${g.title}</div>
-        <div class="goal-meta">${g.category}${g.deadline?` • ${daysLeft>=0?daysLeft+" days left":"past due"}`:""} <span class="badge">${status}</span></div>
-        <div class="goal-progress"><div style="width:${Math.min(100,Math.round(value*100))}%"></div></div>
-        <div class="goal-actions">
-          ${g.type==='manual' ? '<button class="primary" data-act="inc">+ Progress</button>' : ''}
-          <button class="primary" data-act="edit" style="background:#555">Edit</button>
-          <button class="primary" data-act="complete" style="background:#2e7d32">Complete</button>
-          <button class="primary" data-act="delete" style="background:#b71c1c">Delete</button>
-        </div>`;
-      card.querySelectorAll('button').forEach(btn=>{
-        btn.onclick = ()=>{
-          const act = btn.getAttribute('data-act');
-          if(act==='inc'){ g.progress = (g.progress||0)+1; save(); renderGoals(); }
-          if(act==='edit'){ showGoalForm(g); }
-          if(act==='complete'){ g.completed=true; save(); toast(randomMotivation()); renderGoals(); }
-          if(act==='delete'){ goals = goals.filter(x=>x.id!==g.id); save(); renderGoals(); }
-        };
-      });
-      if(g.completed) comp.appendChild(card); else list.appendChild(card);
-    });
-    if(!list.children.length) list.innerHTML = '<em>No active goals yet.</em>';
-    if(!comp.children.length) comp.innerHTML = '<em>No completed goals yet.</em>';
-  }
-  function showGoalForm(existing){
-    const g = existing || {id:uid(), title:'', category:'Strength', type:'manual', target:1, progress:0, deadline:'', createdPhase:phase, completed:false, link:{} };
-    const m = modal(`<h3>${existing?'Edit Goal':'Add Goal'}</h3>
-      <form id="goal-form">
-        <label>Title <input name="title" value="${g.title||''}" required></label>
-        <label>Category
-          <select name="category">
-            ${["Strength","Conditioning","Mobility","Lifestyle","Other"].map(c=>`<option ${g.category===c?'selected':''}>${c}</option>`).join('')}
-          </select>
-        </label>
-        <label>Type
-          <select name="type" id="goal-type">
-            <option value="manual" ${g.type==='manual'?'selected':''}>Manual (count to target)</option>
-            <option value="1rm" ${g.type==='1rm'?'selected':''}>1RM target (auto)</option>
-            <option value="extras_week" ${g.type==='extras_week'?'selected':''}>Extras per week (auto)</option>
-          </select>
-        </label>
-        <div id="goal-type-extra"></div>
-        <label>Target (number) <input name="target" type="tel" inputmode="numeric" pattern="[0-9]*" value="${g.target||1}"></label>
-        <label>Deadline (optional) <input name="deadline" type="date" value="${g.deadline||''}"></label>
-        <div class="row right">
-          <button type="button" id="cancel" class="primary" style="background:#888">Cancel</button>
-          <button type="submit" class="primary">Save</button>
-        </div>
-      </form>`);
-    const extra = m.querySelector('#goal-type-extra');
-    function renderExtraFields(){
-      const val = m.querySelector('#goal-type').value;
-      if(val==='1rm'){
-        const ex = g.link?.exercise || 'Deadlift';
-        extra.innerHTML = `<label>Exercise
-          <select name="exercise">
-            ${["Back Squat","Deadlift","Front Squat"].map(k=>`<option ${ex===k?'selected':''}>${k}</option>`).join('')}
-          </select>
-        </label>`;
-      } else if(val==='extras_week'){
-        extra.innerHTML = `<p class="goal-meta">Counts extra workouts logged in the current phase week.</p>`;
-      } else { extra.innerHTML=''; }
-    }
-    m.querySelector('#goal-type').onchange = renderExtraFields; renderExtraFields();
-    m.querySelector('#cancel').onclick = ()=> m.remove();
-    m.querySelector('#goal-form').onsubmit = (e)=>{
-      e.preventDefault();
-      const fd = new FormData(e.target);
-      g.title = fd.get('title'); g.category=fd.get('category'); g.type=fd.get('type');
-      g.target = parseInt(fd.get('target'))||1; g.deadline = fd.get('deadline')||''; g.createdPhase = phase;
-      if(g.type==='1rm'){ g.link={exercise: fd.get('exercise')}; }
-      if(!existing) goals.push(g);
-      save(); m.remove(); renderGoals();
-    };
-  }
-
-  // ------- Stats -------
+  // ------- Stats & Phase Complete -------
   function renderGlance(){
     const el = document.getElementById('glance-content'); if(!el) return;
     const today = iso(new Date());
@@ -502,15 +371,26 @@ function randomMotivation(){
     <h4>Recent Weeks</h4>
     <ul>${recent || "<li>No data yet.</li>"}</ul>`;
   }
-  function renderExtraLists(){
-    const all = [];
-    Object.keys(extraWorkouts).filter(inCurrentPhase).forEach(date=> (extraWorkouts[date]||[]).forEach(e=> all.push({date,...e})));
-    all.sort((a,b)=> a.date<b.date ? 1 : (a.date>b.date?-1:0));
-    const mini = document.getElementById('extra-mini');
-    mini.innerHTML = all.length ? ('<ul>'+ all.slice(0,3).map(e=>`<li>${e.date} – ${e.type} – ${e.duration||''} min ${e.intensity?('– Int '+e.intensity):''}</li>`).join('') + '</ul>') : '<em>No extras yet.</em>';
-    const hist = document.getElementById('extra-history');
-    hist.innerHTML = all.length ? ('<ul>'+ all.map(e=>`<li>${e.date} – ${e.type} – ${e.duration||''} min ${e.intensity?('– Int '+e.intensity):''} ${e.notes?('– '+e.notes):''}</li>`).join('') + '</ul>') : '<em>No extra workouts logged yet.</em>';
+  function checkPhaseComplete(){
+    const idxs = [0,1,2,3];
+    const allDone = idxs.every(isPhaseWeekComplete);
+    if(allDone){
+      const m = modal(`<h2>🎉 Phase ${phase} Complete!</h2>
+        <p>Great work. Ready to set new 1RMs for Phase ${phase+1}?</p>
+        <div class="row right">
+          <button id="later" class="primary" style="background:#888">Later</button>
+          <button id="next" class="primary">Start Phase ${phase+1}</button>
+        </div>`);
+      m.querySelector('#later').onclick = ()=> m.remove();
+      m.querySelector('#next').onclick = ()=>{
+        phase += 1; save(); m.remove();
+        document.getElementById('nav-orms').click();
+        toCalendar(); renderMonth(); updateStats();
+      };
+    }
   }
+
+  // ------- Charts -------
   function renderORMChart(){
     const canvas = document.getElementById('exercise-chart'); if(!canvas || !window.Chart) return;
     const ctx = canvas.getContext('2d');
@@ -545,6 +425,15 @@ function randomMotivation(){
       },
       options:{responsive:true, plugins:{legend:{position:'bottom'}}, scales:{y:{min:1,max:4,ticks:{stepSize:1}}}}
     });
+  }
+  function renderExtraLists(){
+    const all = [];
+    Object.keys(extraWorkouts).filter(inCurrentPhase).forEach(date=> (extraWorkouts[date]||[]).forEach(e=> all.push({date,...e})));
+    all.sort((a,b)=> a.date<b.date ? 1 : (a.date>b.date?-1:0));
+    const mini = document.getElementById('extra-mini');
+    mini.innerHTML = all.length ? ('<ul>'+ all.slice(0,3).map(e=>`<li>${e.date} – ${e.type} – ${e.duration||''} min ${e.intensity?('– Int '+e.intensity):''}</li>`).join('') + '</ul>') : '<em>No extras yet.</em>';
+    const hist = document.getElementById('extra-history');
+    hist.innerHTML = all.length ? ('<ul>'+ all.map(e=>`<li>${e.date} – ${e.type} – ${e.duration||''} min ${e.intensity?('– Int '+e.intensity):''} ${e.notes?('– '+e.notes):''}</li>`).join('') + '</ul>') : '<em>No extra workouts logged yet.</em>';
   }
   function renderStats(){ renderGlance(); renderStreaks(); renderExtraLists(); renderORMChart(); renderMoodChart(); }
 
@@ -616,6 +505,117 @@ function randomMotivation(){
     }, {passive:true});
   }
 
+  // ------- Goals (full) -------
+  function uid(){ return Math.random().toString(36).slice(2); }
+  function computeGoalProgress(g){
+    if(g.completed) return 1;
+    if(g.type==='manual'){ return Math.min(1, (g.progress||0) / Math.max(1,g.target||1)); }
+    if(g.type==='1rm'){
+      const ex = g.link?.exercise; if(!ex) return 0;
+      const current = oneRepMax[ex]||0;
+      return Math.min(1, current / Math.max(1,g.target||1));
+    }
+    if(g.type==='extras_week'){
+      const today = iso(new Date());
+      const idx = phaseWeekIndex(today);
+      const {start} = phaseRange();
+      const wkStart = new Date(start); wkStart.setDate(start.getDate() + idx*7);
+      const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate()+6);
+      const count = Object.keys(extraWorkouts).filter(date=>{
+        const d=new Date(date); return d>=wkStart && d<=wkEnd && inCurrentPhase(date) && (extraWorkouts[date]||[]).length>0;
+      }).length;
+      return Math.min(1, count / Math.max(1,g.target||1));
+    }
+    return 0;
+  }
+  function renderGoals(){
+    const list = document.getElementById('goals-list');
+    const comp = document.getElementById('goals-completed-list');
+    if(!list||!comp) return;
+    list.innerHTML=''; comp.innerHTML='';
+
+    goals.forEach(g=>{
+      const value = computeGoalProgress(g);
+      const deadline = g.deadline ? new Date(g.deadline) : null;
+      const daysLeft = deadline ? Math.ceil((deadline - new Date())/(1000*60*60*24)) : null;
+      const status = g.completed ? 'Completed' : (daysLeft!=null && daysLeft<0 ? 'Missed' : (value>=1 ? 'Ready to complete' : 'On Track'));
+      const card = document.createElement('div'); card.className='goal-card';
+      card.innerHTML = `
+        <div class="goal-title">${g.title}</div>
+        <div class="goal-meta">${g.category}${g.deadline?` • ${daysLeft>=0?daysLeft+" days left":"past due"}`:""} <span class="badge">${status}</span></div>
+        <div class="goal-progress"><div style="width:${Math.min(100,Math.round(value*100))}%"></div></div>
+        <div class="goal-actions">
+          ${g.type==='manual' ? '<button class="primary" data-act="inc">+ Progress</button>' : ''}
+          <button class="primary" data-act="edit" style="background:#555">Edit</button>
+          <button class="primary" data-act="complete" style="background:#2e7d32">Complete</button>
+          <button class="primary" data-act="delete" style="background:#b71c1c">Delete</button>
+        </div>`;
+      card.querySelectorAll('button').forEach(btn=>{
+        btn.onclick = ()=>{
+          const act = btn.getAttribute('data-act');
+          if(act==='inc'){ g.progress = (g.progress||0)+1; save(); renderGoals(); }
+          if(act==='edit'){ showGoalForm(g); }
+          if(act==='complete'){ g.completed=true; save(); toast("Goal completed! ✅"); renderGoals(); }
+          if(act==='delete'){ goals = goals.filter(x=>x.id!==g.id); save(); renderGoals(); }
+        };
+      });
+      if(g.completed) comp.appendChild(card); else list.appendChild(card);
+    });
+    if(!list.children.length) list.innerHTML = '<em>No active goals yet.</em>';
+    if(!comp.children.length) comp.innerHTML = '<em>No completed goals yet.</em>';
+  }
+  function showGoalForm(existing){
+    const g = existing || {id:uid(), title:'', category:'Strength', type:'manual', target:1, progress:0, deadline:'', createdPhase:phase, completed:false, link:{} };
+    const m = modal(`<h3>${existing?'Edit Goal':'Add Goal'}</h3>
+      <form id="goal-form">
+        <label>Title <input name="title" value="${g.title||''}" required></label>
+        <label>Category
+          <select name="category">
+            ${["Strength","Conditioning","Mobility","Lifestyle","Other"].map(c=>`<option ${g.category===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </label>
+        <label>Type
+          <select name="type" id="goal-type">
+            <option value="manual" ${g.type==='manual'?'selected':''}>Manual (count to target)</option>
+            <option value="1rm" ${g.type==='1rm'?'selected':''}>1RM target (auto)</option>
+            <option value="extras_week" ${g.type==='extras_week'?'selected':''}>Extras per week (auto)</option>
+          </select>
+        </label>
+        <div id="goal-type-extra"></div>
+        <label>Target (number) <input name="target" type="tel" inputmode="numeric" pattern="[0-9]*" value="${g.target||1}"></label>
+        <label>Deadline (optional) <input name="deadline" type="date" value="${g.deadline||''}"></label>
+        <div class="row right">
+          <button type="button" id="cancel" class="primary" style="background:#888">Cancel</button>
+          <button type="submit" class="primary">Save</button>
+        </div>
+      </form>`);
+    const extra = m.querySelector('#goal-type-extra');
+    function renderExtraFields(){
+      const val = m.querySelector('#goal-type').value;
+      if(val==='1rm'){
+        const ex = g.link?.exercise || 'Deadlift';
+        extra.innerHTML = `<label>Exercise
+          <select name="exercise">
+            ${["Back Squat","Deadlift","Front Squat"].map(k=>`<option ${ex===k?'selected':''}>${k}</option>`).join('')}
+          </select>
+        </label>`;
+      } else if(val==='extras_week'){
+        extra.innerHTML = `<p class="goal-meta">Counts extra workouts logged in the current phase week.</p>`;
+      } else { extra.innerHTML=''; }
+    }
+    m.querySelector('#goal-type').onchange = renderExtraFields; renderExtraFields();
+    m.querySelector('#cancel').onclick = ()=> m.remove();
+    m.querySelector('#goal-form').onsubmit = (e)=>{
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      g.title = fd.get('title'); g.category=fd.get('category'); g.type=fd.get('type');
+      g.target = parseInt(fd.get('target'))||1; g.deadline = fd.get('deadline')||''; g.createdPhase = phase;
+      if(g.type==='1rm'){ g.link={exercise: fd.get('exercise')}; }
+      if(!existing) goals.push(g);
+      save(); m.remove(); renderGoals();
+    };
+  }
+
   // ------- Init -------
   document.addEventListener('DOMContentLoaded', () => {
     if(!data.schedule || !data.schedule.length){ buildSchedule(); }
@@ -623,7 +623,14 @@ function randomMotivation(){
     toCalendar(); renderMonth(); renderStats();
     document.getElementById('prev-month').onclick = ()=>{ window._viewMonth--; if(window._viewMonth<0){window._viewMonth=11;window._viewYear--;} renderMonth(); };
     document.getElementById('next-month').onclick = ()=>{ window._viewMonth++; if(window._viewMonth>11){window._viewMonth=0;window._viewYear++;} renderMonth(); };
-    enableSwipe();
+    // swipe for month nav
+    const el = document.getElementById('calendar-grid'); if(el){
+      let startX=0,endX=0;
+      el.addEventListener('touchstart',e=>{ startX=e.changedTouches[0].screenX; }, {passive:true});
+      el.addEventListener('touchend',e=>{ endX=e.changedTouches[0].screenX; const dx=endX-startX;
+        if(Math.abs(dx)>50){ if(dx<0){ window._viewMonth++; if(window._viewMonth>11){window._viewMonth=0;window._viewYear++;} } else { window._viewMonth--; if(window._viewMonth<0){window._viewMonth=11;window._viewYear--;} } renderMonth(); }
+      }, {passive:true});
+    }
 
     document.getElementById('nav-calendar').onclick = ()=> toCalendar();
     document.getElementById('nav-stats').onclick    = ()=> toStats();
@@ -654,11 +661,11 @@ function randomMotivation(){
           const v = parseInt(fd.get(k));
           if(!isNaN(v) && v>0){ oneRepMax[k]=v; (ormHistory[k]||(ormHistory[k]=[])).push(v); }
         });
-        save(); m.remove(); toast(randomMotivation()); renderORMChart();
+        save(); m.remove(); toast("1RMs updated ✅"); renderORMChart();
       };
     };
 
-    // Log Extra (with mood + mini celebration)
+    // Log Extra (with mood + mini celebration + motivation)
     document.getElementById('nav-extra').onclick = ()=>{
       const today = new Date().toISOString().slice(0,10);
       const m = modal(`<h3>Log Extra Workout</h3>
@@ -699,8 +706,7 @@ function randomMotivation(){
             const score=parseInt(b.getAttribute('data-mood'));
             if(!Array.isArray(moodLogs[date])) moodLogs[date]= (moodLogs[date]==null?[]:[moodLogs[date]].flat());
             moodLogs[date].push(score); save(); mm.remove();
-            celebrateMini('extra');
-            updateStats();
+            celebrateMini('extra'); toast(randomMotivation()); updateStats();
           };
         });
       };
@@ -708,33 +714,3 @@ function randomMotivation(){
 
   });
 })();
-
-// --- v15.8 Phase Week Completion ---
-function phaseWeekRanges(){
-  // anchor start 2025-09-23 (Tue)
-  const anchor = new Date("2025-09-23");
-  const ranges = [];
-  for(let i=0;i<4;i++){
-    const start = new Date(anchor);
-    start.setDate(anchor.getDate() + i*7);
-    const end = new Date(start);
-    end.setDate(start.getDate()+6);
-    ranges.push({week:i+1, start, end});
-  }
-  return ranges;
-}
-function isPhaseWeekComplete(weekNum){
-  const ranges = phaseWeekRanges();
-  const w = ranges.find(r=>r.week===weekNum);
-  if(!w) return false;
-  const days = data.schedule.filter(s=>{
-    const d = new Date(s.date);
-    return d>=w.start && d<=w.end;
-  });
-  const d1 = days.find(s=>s.label==='Day 1');
-  const d2 = days.find(s=>s.label==='Day 2');
-  const d3 = days.find(s=>s.label==='Day 3');
-  return (!!d1 && data.completed.includes(d1.date)) &&
-         (!!d2 && data.completed.includes(d2.date)) &&
-         (!!d3 && data.completed.includes(d3.date));
-}
