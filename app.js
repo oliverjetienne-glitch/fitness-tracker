@@ -1,5 +1,7 @@
 // Fitness Tracker v15.11 (rebuilt from scratch) — full features + simplified week completion
 (function(){
+  const PROGRAM_START_DATE = "2026-02-11";
+
   const VERSION = '15.11';
   const pad = n => String(n).padStart(2,'0');
   const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -124,6 +126,8 @@
     }
   }
   function buildSchedule(){
+    const start = new Date(PROGRAM_START_DATE);
+
     const anchor = new Date(2025,8,23); // Tue 2025-09-23
     const list = [];
     for(const s of scheduleGenerator(anchor, 104)){ list.push(s); }
@@ -589,7 +593,8 @@
 
   // Init
   document.addEventListener('DOMContentLoaded', () => {
-    if(!data.schedule || !data.schedule.length){ buildSchedule(); }
+    data.schedule = [];
+    buildSchedule();
     const now = new Date(); window._viewYear = now.getFullYear(); window._viewMonth = now.getMonth();
     toCalendar(); renderMonth(); renderStats(); enableSwipe();
     document.getElementById('prev-month').onclick = ()=>{ window._viewMonth--; if(window._viewMonth<0){window._viewMonth=11;window._viewYear--;} renderMonth(); };
